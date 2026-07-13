@@ -9,14 +9,34 @@ refresh, archiving a parcel, and sending an ad-hoc notification.
 
 ## Installation
 
-1. Copy `custom_components/parcel_server/` into your Home Assistant
-   config directory, e.g. `<config>/custom_components/parcel_server/`
-   (or install via HACS as a custom repository pointing at this path).
-2. Restart Home Assistant.
-3. Settings → Devices & Services → Add Integration → "Parcel Server".
-4. Enter the backend's base URL (e.g. `http://parcel-server.local:8000`)
+### Via HACS (recommended)
+
+This repository is a monorepo, so the integration doesn't live at the
+repository root the way HACS expects by default - `hacs.json` (at the repo
+root) sets `zip_release: true`, which tells HACS to download a packaged
+`parcel_server.zip` from this repo's GitHub Releases instead of looking for
+`custom_components/` directly. `.github/workflows/release-ha-integration.yml`
+builds that zip automatically whenever a tag matching `ha-v*` is pushed
+(e.g. `ha-v0.1.0`) - a release has to exist before HACS can install
+anything, since `zip_release` mode can't install from a plain branch.
+
+Once at least one `ha-v*` release exists:
+
+1. In Home Assistant, go to HACS → the three-dot menu (top right) →
+   **Custom repositories**.
+2. Add `https://github.com/PatrLore/ParcelTracker`, type **Integration**.
+3. Find "Parcel Server" in HACS and install it.
+4. Restart Home Assistant.
+5. Settings → Devices & Services → Add Integration → "Parcel Server".
+6. Enter the backend's base URL (e.g. `http://parcel-server.local:8000`)
    and the email/password of a Parcel Server account. The config flow logs
    in immediately to verify the credentials before creating the entry.
+
+### Manual
+
+1. Copy `custom_components/parcel_server/` into your Home Assistant
+   config directory, e.g. `<config>/custom_components/parcel_server/`.
+2. Restart Home Assistant and continue from step 5 above.
 
 ## Sensors
 

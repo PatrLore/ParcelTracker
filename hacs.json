@@ -1,0 +1,7 @@
+{
+  "name": "Parcel Server",
+  "render_readme": false,
+  "zip_release": true,
+  "filename": "parcel_server.zip",
+  "homeassistant": "2024.2.0"
+}

@@ -39,6 +39,21 @@ jobs:
       - run: pytest
         working-directory: mqtt
 
+  home-assistant-integration:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/home_assistant
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements_test.txt ruff
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

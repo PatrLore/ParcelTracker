@@ -1,0 +1,35 @@
+name: Release Home Assistant integration
+
+# Packages integrations/home_assistant/custom_components/parcel_server into
+# parcel_server.zip and attaches it to a GitHub Release - the asset HACS's
+# zip_release mode (see hacs.json) downloads, since the integration lives in
+# a subdirectory of this monorepo rather than at the repository root.
+#
+# Cut a release by pushing a tag matching ha-v*, e.g.:
+#   git tag ha-v0.1.0 && git push origin ha-v0.1.0
+
+on:
+  push:
+    tags:
+      - "ha-v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zip the integration
+        working-directory: integrations/home_assistant/custom_components/parcel_server
+        run: zip -r "$GITHUB_WORKSPACE/parcel_server.zip" . -x "__pycache__/*"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Home Assistant integration ${{ github.ref_name }}"
+          files: parcel_server.zip
+          body: |
+            Parcel Server Home Assistant integration, packaged for HACS.
+            See integrations/home_assistant/README.md for installation.

@@ -25,9 +25,9 @@ Additional auth providers (OAuth, LDAP) remain open - see the roadmap.
 - **Auth:** JWT (OAuth, LDAP, and Home Assistant auth planned for later
   phases).
 - **Home Assistant:** MQTT Discovery sensors (below) plus a dedicated
-  custom integration (`integrations/home_assistant/`) with a config flow,
-  five native sensors, and three services (refresh tracking, archive
-  parcel, send notification).
+  custom integration (`integrations/home_assistant/`, installable via HACS
+  as a custom repository) with a config flow, five native sensors, and
+  three services (refresh tracking, archive parcel, send notification).
 - **Email import:** IMAP polling (Gmail, Outlook/Exchange, GMX, WEB.DE,
   Yahoo, ...) with auto-discovered merchant parsers (Amazon, eBay, Otto,
   MediaMarkt, Saturn, IKEA, Temu, Kaufland, AliExpress, Decathlon, Zalando,
