@@ -106,10 +106,21 @@ npm run lint    # oxlint
 ```
 src/api/         axios client + token storage
 src/contexts/    AuthContext (session), ThemeModeContext (light/dark)
-src/components/  shared UI building blocks
-src/pages/       route-level components
+src/components/  shared UI building blocks (StatCard, MonthlyParcelsChart,
+                 RateMeter, AppLayout with the Dashboard/Statistics nav)
+src/pages/       route-level components (DashboardPage, StatisticsPage, ...)
 src/types/       API response types, hand-kept in sync with backend schemas
 ```
+
+### Adding a chart
+
+`MonthlyParcelsChart` is a hand-rolled SVG bar chart (no charting library
+dependency, deliberately - one series, twelve bars, not worth the bundle
+weight). If you add another chart, keep its `viewBox` width/height in the
+same unit scale as real pixels and never set `preserveAspectRatio="none"`
+with an independently-chosen pixel `height` - that stretches text and
+marks non-uniformly (this bit the first draft of this exact chart; see its
+component-level comment).
 
 ## Tests
 

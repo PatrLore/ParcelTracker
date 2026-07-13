@@ -4,6 +4,7 @@ import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { StatisticsPage } from "./pages/StatisticsPage";
 
 export function App() {
   return (
@@ -15,6 +16,16 @@ export function App() {
           <ProtectedRoute>
             <AppLayout>
               <DashboardPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/statistics"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <StatisticsPage />
             </AppLayout>
           </ProtectedRoute>
         }

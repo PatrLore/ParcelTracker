@@ -70,9 +70,24 @@
   not been validated against the live APIs (see each channel module's
   docstring) - only against fabricated responses/fakes.
 
-## Phase 5 - Statistics & polish
+## Phase 5 - Statistics & polish (done)
 
-- Dashboard analytics: parcels per month, average delivery time, top
-  merchant/carrier, delay rate, success rate.
-- Performance passes, structured-logging refinements, log rotation
-  hardening.
+- Statistics endpoint (`GET /api/v1/statistics/summary`) and a frontend
+  page: parcels per month (bar chart), average delivery time, top
+  merchant, top carrier, delayed rate, success rate - all scoped to the
+  authenticated user, computed portably across SQLite/PostgreSQL/MariaDB
+  (monthly bucketing done in Python rather than a DB-specific date-trunc
+  function).
+- Performance: added indexes that were missing for the query patterns
+  already in the codebase - `Order.user_id`, `MailAccount.user_id` (every
+  query on both tables filters by it; FK columns aren't auto-indexed by
+  Postgres/MariaDB), and `Shipment.tracking_status` (filtered/grouped by
+  in the dashboard, tracking worker, and statistics).
+- Logging: every HTTP request is now logged through the app's own logger
+  (method, path, status, duration), so it flows through the rotating file
+  handler; Uvicorn's own access log is disabled in the Docker entrypoint
+  to avoid a second, non-rotating log stream with a different format.
+- Not yet done: pagination/rate-limit tuning under real load (no load
+  testing has been done against this codebase), and pushing the parcels-
+  per-month chart's month count into user-configurable UI (currently a
+  `months` query param, default 12, not yet exposed as a control).

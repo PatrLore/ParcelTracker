@@ -18,7 +18,9 @@ class MailAccount(Base, TimestampMixin):
     __tablename__ = "mail_accounts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     email_address: Mapped[str] = mapped_column(String(255), nullable=False)
     imap_host: Mapped[str] = mapped_column(String(255), nullable=False)

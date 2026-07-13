@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 
@@ -59,6 +60,25 @@ def create_app() -> FastAPI:
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "same-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        return response
+
+    @app.middleware("http")
+    async def log_requests(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        # Routed through our own logger (and thus the rotating file handler)
+        # rather than relying on Uvicorn's access log, which uses its own
+        # handler/format and doesn't rotate - see docs/development.md.
+        started_at = time.perf_counter()
+        response = await call_next(request)
+        duration_ms = (time.perf_counter() - started_at) * 1000
+        logger.info(
+            "%s %s -> %d (%.1fms)",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+        )
         return response
 
     @app.get("/health", tags=["health"])

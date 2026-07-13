@@ -4,14 +4,15 @@ A self-hosted parcel-tracking server. It reads shipping confirmations out of
 your inbox, extracts tracking numbers, identifies the carrier, and keeps
 track of every parcel's status - all running locally under your control.
 
-Phases 1-4 of a five-phase build are done (see
-[`docs/roadmap.md`](docs/roadmap.md)): the foundation (backend, frontend,
-database, Docker, authentication, dashboard), automatic email import (IMAP
-mailboxes, pluggable merchant parsers, carrier detection), tracking-provider
-integration (17TRACK, AfterShip, TrackingMore, Ship24), and notifications
-(webhook, Discord, Telegram, Email, Signal) plus MQTT/Home Assistant
-Discovery sensors. A dedicated Home Assistant custom integration,
-additional auth providers, and statistics land in later work.
+All five planned phases are done (see [`docs/roadmap.md`](docs/roadmap.md)
+for what's genuinely finished vs. still best-effort within each): the
+foundation (backend, frontend, database, Docker, authentication,
+dashboard), automatic email import (IMAP mailboxes, pluggable merchant
+parsers, carrier detection), tracking-provider integration (17TRACK,
+AfterShip, TrackingMore, Ship24), notifications (webhook, Discord,
+Telegram, Email, Signal) plus MQTT/Home Assistant Discovery sensors, and a
+statistics dashboard. A dedicated Home Assistant custom integration and
+additional auth providers (OAuth, LDAP) remain open - see the roadmap.
 
 ## Stack
 
@@ -36,6 +37,8 @@ additional auth providers, and statistics land in later work.
   on new confirmations and delivered/delayed shipments.
 - **MQTT:** Home Assistant MQTT Discovery sensors (`parcel.total`,
   `.in_transit`, `.delivered_today`, `.next_delivery`, `.delayed`).
+- **Statistics:** parcels per month, average delivery time, top
+  merchant/carrier, delayed rate, success rate.
 - **Docker:** full Compose stack - backend, import worker, tracking worker,
   frontend, database, optional Redis, optional MQTT broker.
 

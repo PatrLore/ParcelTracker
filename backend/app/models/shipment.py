@@ -29,7 +29,10 @@ class Shipment(Base, TimestampMixin):
 
     tracking_number: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     tracking_status: Mapped[ShipmentStatus] = mapped_column(
-        Enum(ShipmentStatus, native_enum=False), default=ShipmentStatus.UNKNOWN, nullable=False
+        Enum(ShipmentStatus, native_enum=False),
+        default=ShipmentStatus.UNKNOWN,
+        nullable=False,
+        index=True,
     )
     ship_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     estimated_delivery_date: Mapped[date | None] = mapped_column(Date, nullable=True)

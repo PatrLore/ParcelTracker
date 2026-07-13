@@ -215,6 +215,43 @@ shipment -> DELIVERED / DELAYED  --> app/services/tracking_sync_service.py
   (`tracking_provider.poll_interval_seconds`, `mqtt.publish_interval_seconds`)
   - the same pattern the mail worker uses for per-account polling.
 
+## Statistics (Phase 5)
+
+`GET /api/v1/statistics/summary` (`app/services/statistics_service.py`)
+computes, scoped to the current user: parcels per month (last N, default
+12), average delivery time, top merchant, top carrier, delayed rate, and
+success rate. Two things worth knowing:
+
+- **Monthly bucketing is done in Python**, not with a SQL date-trunc
+  function (`OrderRepository.monthly_counts_for_user`) - `date_trunc` is
+  Postgres-specific and SQLite/MariaDB each have their own equivalent, so
+  computing it in Python keeps the query portable across all three
+  supported backends at the cost of fetching one column's worth of rows.
+- **Delayed rate counts history, not just current status** - a shipment
+  that was once `DELAYED` and later delivered still counts, via a `UNION`
+  of "currently delayed" and "has a DELAYED `TrackingEvent`"
+  (`ShipmentRepository.delayed_shipment_count_for_user`).
+
+The frontend's `StatisticsPage` renders this as a KPI row (reusing the
+dashboard's `StatCard`), a single-series bar chart for parcels/month, and
+two rate meters (success/delayed) - see `docs/development.md` for the
+frontend layout.
+
+## Performance and logging (Phase 5)
+
+- Indexes were added for query patterns that already existed in the
+  codebase, not speculatively: `Order.user_id` and `MailAccount.user_id`
+  (every query on both tables filters by it, and unlike SQLite,
+  Postgres/MariaDB don't auto-index FK columns), and
+  `Shipment.tracking_status` (filtered/grouped by in the dashboard,
+  tracking worker, and statistics).
+- Every HTTP request is logged through `app.main`'s own logger (method,
+  path, status, duration) via a middleware, so it flows through the
+  rotating file handler configured in `app/core/logging.py`. Uvicorn's own
+  access log is a separate logger with its own handler/format and
+  **doesn't rotate** by default, so it's disabled in the Docker entrypoint
+  (`--no-access-log`) to avoid a second, inconsistent log stream.
+
 ## Database portability
 
 `app/config.py`'s `DatabaseSettings.sqlalchemy_url` is the only place that

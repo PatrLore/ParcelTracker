@@ -54,3 +54,18 @@ export interface DashboardSummary {
   new_confirmations: number;
   recent_shipments: Shipment[];
 }
+
+export interface MonthlyCount {
+  month: string;
+  count: number;
+}
+
+export interface StatisticsSummary {
+  parcels_per_month: MonthlyCount[];
+  average_delivery_days: number | null;
+  top_merchant: string | null;
+  top_carrier: string | null;
+  delayed_rate: number;
+  success_rate: number | null;
+  total_shipments: number;
+}

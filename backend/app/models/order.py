@@ -20,7 +20,9 @@ class Order(Base, TimestampMixin):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     merchant: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     order_number: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
