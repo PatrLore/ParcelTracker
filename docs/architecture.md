@@ -27,16 +27,22 @@ Parcel Server is split into independently deployable/installable units:
 - **`mqtt/`** — a standalone, database-free Python package: an MQTT
   publisher with Home Assistant MQTT Discovery for the five `parcel.*`
   sensors. Phase 4.
+- **`custom_components/parcel_server/`** (repository root) — a native Home
+  Assistant custom integration talking to the REST API directly: a config
+  flow, five sensors, and three services (`refresh_tracking`,
+  `archive_parcel`, `send_notification`). Lives at the repository root,
+  not under `integrations/`, because HACS requires `custom_components/`
+  there; its docs, tests, and dev tooling live at
+  `integrations/home_assistant/` instead (see
+  `integrations/home_assistant/README.md`). Unlike
+  `importer`/`tracking`/`notification`/`mqtt`, it isn't pip-installed into
+  the backend's virtualenv - it's installed into Home Assistant itself,
+  via HACS or by copying the folder into Home Assistant's config directory.
 - **`integrations/`** — deeper platform integrations beyond generic
-  notifications. `home_assistant/` (Phase 4+, done) is a native Home
-  Assistant custom integration (`custom_components/parcel_server/`) talking
-  to the REST API directly - a config flow, five sensors, and three
-  services (`refresh_tracking`, `archive_parcel`, `send_notification`).
-  Unlike `importer`/`tracking`/`notification`/`mqtt`, it isn't pip-installed
-  into the backend's virtualenv - it's a Home Assistant custom_component,
-  installed by copying it into Home Assistant's own config directory (see
-  `integrations/home_assistant/README.md`). Additional auth providers
-  (OAuth, LDAP) remain a placeholder.
+  notifications: `home_assistant/` (Phase 4+, done) holds the Home
+  Assistant integration's docs/tests (the integration's own code is at
+  `custom_components/parcel_server/`, see above). Additional auth
+  providers (OAuth, LDAP) remain a placeholder.
 
 `importer`, `tracking`, `notification`, and `mqtt` all have zero dependency
 on `backend`, FastAPI, or SQLAlchemy - they're plain Python libraries

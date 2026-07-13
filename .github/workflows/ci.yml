@@ -41,18 +41,22 @@ jobs:
 
   home-assistant-integration:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: integrations/home_assistant
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - run: pip install -r requirements_test.txt ruff
-      - run: ruff check .
-      - run: ruff format --check .
+        working-directory: integrations/home_assistant
+      # custom_components/ lives at the repo root - HACS requires it there -
+      # while the integration's dev tooling (tests, pyproject.toml) stays
+      # under integrations/home_assistant/, so lint/test each in place.
+      - run: ruff check custom_components
+      - run: ruff format --check custom_components
+      - run: ruff check integrations/home_assistant/tests
+      - run: ruff format --check integrations/home_assistant/tests
       - run: pytest
+        working-directory: integrations/home_assistant
 
   frontend:
     runs-on: ubuntu-latest

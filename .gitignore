@@ -28,7 +28,10 @@ mqtt/*.egg-info/
 mqtt/.pytest_cache/
 mqtt/.ruff_cache/
 
-# Home Assistant integration (custom_components, tested standalone)
+# Home Assistant integration (code at custom_components/, docs/tests/dev
+# tooling at integrations/home_assistant/ - see docs/architecture.md)
+custom_components/**/__pycache__/
+custom_components/.ruff_cache/
 integrations/home_assistant/.venv/
 integrations/home_assistant/**/__pycache__/
 integrations/home_assistant/.pytest_cache/

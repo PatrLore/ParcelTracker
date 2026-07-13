@@ -81,14 +81,16 @@ cd backend
 Always review the generated migration - autogenerate does not detect every
 kind of change (renames, some constraint changes).
 
-### Home Assistant integration (`integrations/home_assistant/`)
+### Home Assistant integration (`custom_components/parcel_server/`)
 
 Not one of the four sibling packages above - it's a Home Assistant
-*custom_component*, so it isn't pip-installed into the backend venv and
-most of it (`__init__.py`, `config_flow.py`, `coordinator.py`, `sensor.py`)
-imports `homeassistant.*`, which isn't a dependency of this repo. Only
-`api.py` (the REST client) is homeassistant-free and has its own test
-suite, in its own venv:
+*custom_component*, so its code lives at `custom_components/parcel_server/`
+at the repository root (HACS requires it there), while its docs, tests, and
+dev tooling live at `integrations/home_assistant/`. It isn't pip-installed
+into the backend venv, and most of it (`__init__.py`, `config_flow.py`,
+`coordinator.py`, `sensor.py`) imports `homeassistant.*`, which isn't a
+dependency of this repo. Only `api.py` (the REST client) is
+homeassistant-free and has its own test suite, in its own venv:
 
 ```bash
 cd integrations/home_assistant
@@ -97,7 +99,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements_test.txt
 ```
 
 See `integrations/home_assistant/README.md` for installing the integration
-itself into a real Home Assistant instance.
+itself into a real Home Assistant instance (via HACS or manually).
 
 ### Adding an endpoint
 
