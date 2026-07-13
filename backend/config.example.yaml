@@ -1,0 +1,50 @@
+# Parcel Server configuration.
+# Copy this file to config.yaml and adjust the values for your environment.
+# Every runtime setting is controlled from here - nothing is hardcoded.
+
+app:
+  name: "Parcel Server"
+  environment: "development" # development | production
+  debug: true
+  timezone: "Europe/Berlin"
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins:
+    - "http://localhost:5173"
+
+database:
+  # Supported drivers: sqlite, postgresql, mariadb
+  driver: "sqlite"
+  sqlite_path: "./data/parcel-server.db"
+  host: "localhost"
+  port: 5432
+  name: "parcel_server"
+  user: "parcel_server"
+  password: ""
+
+security:
+  # Generate with: python -c "import secrets; print(secrets.token_urlsafe(64))"
+  jwt_secret_key: "change-me-in-production"
+  jwt_algorithm: "HS256"
+  access_token_expire_minutes: 30
+  refresh_token_expire_days: 14
+  password_hash_scheme: "argon2"
+
+rate_limit:
+  enabled: true
+  default: "100/minute"
+
+logging:
+  level: "INFO" # DEBUG | INFO | WARNING | ERROR
+  directory: "./logs"
+  file_name: "parcel-server.log"
+  max_bytes: 10485760
+  backup_count: 5
+
+redis:
+  enabled: false
+  host: "localhost"
+  port: 6379
+  db: 0

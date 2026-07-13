@@ -1,0 +1,48 @@
+# Parcel Server configuration for the Docker Compose stack.
+# Copy to backend/config.yaml before running `docker compose up`.
+# Unlike config.example.yaml (SQLite, for bare-metal/local development), this
+# variant points at the Postgres container started by docker-compose.yml.
+
+app:
+  name: "Parcel Server"
+  environment: "production"
+  debug: false
+  timezone: "Europe/Berlin"
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins:
+    - "http://localhost:5173"
+
+database:
+  driver: "postgresql"
+  host: "db"
+  port: 5432
+  name: "parcel_server"
+  user: "parcel_server"
+  password: "change-me"
+
+security:
+  jwt_secret_key: "change-me-generate-a-long-random-value"
+  jwt_algorithm: "HS256"
+  access_token_expire_minutes: 30
+  refresh_token_expire_days: 14
+  password_hash_scheme: "argon2"
+
+rate_limit:
+  enabled: true
+  default: "100/minute"
+
+logging:
+  level: "INFO"
+  directory: "/app/logs"
+  file_name: "parcel-server.log"
+  max_bytes: 10485760
+  backup_count: 5
+
+redis:
+  enabled: false
+  host: "redis"
+  port: 6379
+  db: 0

@@ -1,0 +1,64 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    image: parcel-server-backend
+    restart: unless-stopped
+    volumes:
+      - ./backend/config.yaml:/app/config.yaml:ro
+      - backend-logs:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - parcel-server
+
+  frontend:
+    build:
+      context: ./frontend
+    image: parcel-server-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - parcel-server
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-parcel_server}
+      POSTGRES_USER: ${POSTGRES_USER:-parcel_server}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-parcel_server}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - parcel-server
+
+  # Optional: enable with `docker compose --profile redis up`.
+  # Set redis.enabled: true in backend/config.yaml to make use of it.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: ["redis"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - parcel-server
+
+volumes:
+  db-data:
+  redis-data:
+  backend-logs:
+
+networks:
+  parcel-server:
