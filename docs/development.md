@@ -43,6 +43,17 @@ Add one entry to `CARRIER_PATTERNS` (and `_DETECTION_ORDER`, for
 disambiguation against overlapping digit-length formats) in
 `tracking/carriers.py`.
 
+### Adding a tracking provider
+
+Add a new module to `tracking/providers/` implementing
+`tracking.provider.TrackingProvider` (`register()` / `update()` /
+`remove()`), then register it in `tracking/providers/factory.py`'s
+`_PROVIDERS` dict and `app/config.py`'s `TrackingProviderSettings.name`
+literal. See any existing provider (e.g. `tracking/providers/aftership.py`)
+for the shape, and `tracking/tests/test_providers.py` for how to test one
+against `httpx.MockTransport` - no real API credentials or network access
+needed.
+
 ### Adding a migration
 
 After changing a model under `app/models/`:

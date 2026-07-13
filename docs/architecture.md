@@ -6,17 +6,19 @@ Parcel Server is split into independently deployable/installable units:
 
 - **`backend/`** — a FastAPI service exposing a versioned REST API
   (`/api/v1`), backed by SQLAlchemy models and Alembic migrations. Also runs
-  as a separate **import worker** process (`app/worker.py`) that polls mail
-  accounts (Phase 2).
+  as two separate worker processes: an **import worker**
+  (`app/worker.py`, Phase 2) that polls mail accounts, and a **tracking
+  worker** (`app/tracking_worker.py`, Phase 3) that refreshes shipment
+  status via the configured tracking provider.
 - **`frontend/`** — a React + TypeScript single-page app (Vite, MUI) that
   consumes the REST API.
 - **`importer/`** — a standalone, database-free Python package: an IMAP
   client (`imap_client.py`) and pluggable merchant-confirmation parsers
   (`parsers/`). Implemented Phase 2.
-- **`tracking/`** — a standalone, database-free Python package: the
-  `TrackingProvider` interface (Phase 3, not yet implemented) and carrier
-  tracking-number detection (`carriers.py`, implemented, used by `importer`
-  since Phase 2).
+- **`tracking/`** — a standalone, database-free Python package: carrier
+  tracking-number detection (`carriers.py`, Phase 2, used by `importer`) and
+  the `TrackingProvider` interface plus four concrete implementations
+  (`providers/` - 17TRACK, AfterShip, TrackingMore, Ship24; Phase 3).
 - **`notification/`, `mqtt/`, `integrations/`** — future-phase packages
   (Phase 4+), currently placeholders.
 
@@ -87,6 +89,9 @@ behavior (see `backend/tests/api/`).
 - **MailAccount** (Phase 2) — an IMAP mailbox a user connected for import.
   The password is never stored in plain text - see
   [Mailbox credential encryption](#mailbox-credential-encryption) below.
+- **Shipment.tracking_registered** (Phase 3) — whether `register()` has
+  already been called against the configured `TrackingProvider` for this
+  shipment, so the sync loop doesn't re-register on every pass.
 
 ## Email import pipeline (Phase 2)
 
@@ -127,6 +132,42 @@ app/worker.py (separate process/container)
 (`MailAccountRead`) never includes the password or its encrypted form in
 any response.
 
+## Tracking provider integration (Phase 3)
+
+```
+app/tracking_worker.py (separate process/container)
+  -> tracking_provider.name != "none":
+       app/services/tracking_sync_service.py
+         -> for each non-terminal Shipment:
+              provider.register(tracking_number)   # once per shipment
+              provider.update(tracking_number)      # -> TrackingProviderEvent[]
+              -> new events become TrackingEvent rows; Shipment.tracking_status
+                 and .delivery_date update from the latest event
+```
+
+- `tracking.providers.factory.create_provider(name, api_key)` builds the
+  provider named in `config.yaml`'s `tracking_provider.name` (`none` /
+  `seventeentrack` / `aftership` / `trackingmore` / `ship24`).
+  `app/services/tracking_provider_factory.py` is the one place backend code
+  calls it - `TrackingSyncService` and the `POST
+  /shipments/{id}/refresh-tracking` endpoint both go through it, so there's
+  a single source of truth for which provider is active.
+- Each provider implementation (`tracking/providers/*.py`) talks to one
+  external REST API via `httpx`. Response field names follow each
+  provider's public documentation as of this writing; if a provider changes
+  its schema, only that one file needs updating. Tests
+  (`tracking/tests/test_providers.py`) exercise the request/response
+  handling against `httpx.MockTransport`, not the live APIs.
+- `TrackingSyncService` deduplicates events by `(status, occurred_at)`,
+  normalized to naive UTC - `DateTime(timezone=True)` columns round-trip as
+  naive on SQLite but stay timezone-aware on Postgres/MariaDB, so comparing
+  raw values would behave differently per backend.
+- A shipment already `DELIVERED` or `RETURNED` is excluded from
+  `sync_due_shipments()` - there's nothing left to poll for.
+- One shipment's provider request failing doesn't stop the rest of that
+  sync pass (`TrackingSyncService.sync_due_shipments` catches per-shipment,
+  the worker also wraps the whole pass defensively).
+
 ## Database portability
 
 `app/config.py`'s `DatabaseSettings.sqlalchemy_url` is the only place that
@@ -134,14 +175,6 @@ builds a connection string. Switching between SQLite, PostgreSQL, and
 MariaDB is a one-line change in `config.yaml` (`database.driver`) - no code
 changes, because every query goes through SQLAlchemy Core/ORM rather than
 driver-specific SQL.
-
-## Forward-looking interfaces
-
-**`tracking.TrackingProvider`** (Phase 3, interface defined, no
-implementation yet) — `register()` / `update()` / `remove()`. Concrete
-providers (17TRACK, AfterShip, TrackingMore, Ship24, carrier APIs) will
-implement this interface; the backend will only ever depend on it, so the
-active provider is a configuration choice, not a code change.
 
 ## Authentication
 

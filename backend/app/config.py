@@ -90,6 +90,15 @@ class RedisSettings(BaseModel):
     db: int = 0
 
 
+class TrackingProviderSettings(BaseModel):
+    """Selects the Phase 3 tracking provider. "none" disables tracking sync
+    entirely - the API/dashboard still work from email-derived data alone."""
+
+    name: Literal["none", "seventeentrack", "aftership", "trackingmore", "ship24"] = "none"
+    api_key: str = ""
+    poll_interval_seconds: int = 900
+
+
 class Settings(BaseModel):
     """Root settings object assembled from ``config.yaml``."""
 
@@ -100,6 +109,7 @@ class Settings(BaseModel):
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
+    tracking_provider: TrackingProviderSettings = Field(default_factory=TrackingProviderSettings)
 
 
 def _config_path() -> Path:

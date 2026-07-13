@@ -63,6 +63,21 @@ It polls every active mail account (respecting each account's own
 shipments. Without it running, mail accounts can still be synced manually via
 `POST /api/v1/mail-accounts/{id}/sync`.
 
+### Tracking worker (Phase 3, optional)
+
+Set `tracking_provider.name`/`tracking_provider.api_key` in `config.yaml`
+to one of `seventeentrack`, `aftership`, `trackingmore`, or `ship24`, then
+run:
+
+```bash
+scripts/dev-tracking-worker.sh
+```
+
+It refreshes every non-terminal shipment's status on
+`tracking_provider.poll_interval_seconds`. Without it running (or with
+`tracking_provider.name: "none"`), shipments can still be refreshed
+manually via `POST /api/v1/shipments/{id}/refresh-tracking`.
+
 ## Configuration
 
 All runtime configuration lives in `backend/config.yaml`, copied from
@@ -81,3 +96,5 @@ machine:
   `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
 - `database.*` - if not using SQLite.
 - `server.cors_origins` - the origin(s) your frontend is served from.
+- `tracking_provider.*` - if you want automatic shipment status refresh
+  (Phase 3); see [Tracking worker](#tracking-worker-phase-3-optional) above.

@@ -28,13 +28,23 @@
   typical formats - see `docs/development.md` on adding/refining a parser),
   and folder-watching beyond a single configured `folder` per mailbox.
 
-## Phase 3 - Tracking
+## Phase 3 - Tracking (done)
 
-- `tracking.TrackingProvider` implementations (17TRACK, AfterShip,
-  TrackingMore, Ship24, direct carrier APIs). The interface and carrier
-  tracking-number detection already exist (Phase 2); this phase wires a
-  provider to actually poll/update shipment status.
-- Scheduled status refresh, full tracking-history persistence.
+- `tracking.TrackingProvider` implementations: 17TRACK, AfterShip,
+  TrackingMore, Ship24 (`tracking/providers/`), each behind the shared
+  interface via `tracking.providers.factory.create_provider`.
+- Scheduled status refresh: a standalone tracking worker
+  (`app/tracking_worker.py`) polls every non-terminal shipment on the
+  interval configured in `tracking_provider.poll_interval_seconds`; a
+  manual `POST /shipments/{id}/refresh-tracking` endpoint is also available.
+- Full tracking-history persistence: every new provider event becomes a
+  `TrackingEvent` row, deduplicated by `(status, occurred_at)`.
+- Not yet done: direct carrier APIs (DHL, UPS, ... as tracking providers in
+  their own right, rather than only as detected-from-tracking-number
+  metadata) - the roadmap's original "direct carrier APIs" item. Also not
+  done: the four providers' response-parsing has not been validated against
+  their live APIs (see each provider module's docstring) - only against
+  fabricated responses matching their published schemas.
 
 ## Phase 4 - Notifications & integrations
 

@@ -12,6 +12,10 @@ from app.models.order import Order
 from app.models.shipment import Shipment
 from app.repositories.base import BaseRepository
 
+#: Shipments in one of these statuses are done - no need to keep polling
+#: the tracking provider for them.
+TERMINAL_STATUSES = (ShipmentStatus.DELIVERED, ShipmentStatus.RETURNED)
+
 
 class ShipmentRepository(BaseRepository[Shipment]):
     model = Shipment
@@ -42,6 +46,16 @@ class ShipmentRepository(BaseRepository[Shipment]):
             Shipment.order_id == order_id, Shipment.tracking_number == tracking_number
         )
         return self.db.scalars(stmt).first()
+
+    def list_non_terminal(self) -> list[Shipment]:
+        """All shipments (across every user) not yet delivered/returned -
+        used by the tracking-refresh worker."""
+        stmt = (
+            select(Shipment)
+            .where(Shipment.tracking_status.notin_(TERMINAL_STATUSES))
+            .options(joinedload(Shipment.carrier), joinedload(Shipment.tracking_events))
+        )
+        return list(self.db.scalars(stmt).unique().all())
 
     def _base_user_query(self, user_id: int):
         return (

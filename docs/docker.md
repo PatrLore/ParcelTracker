@@ -1,15 +1,16 @@
 # Docker
 
 `docker-compose.yml` at the repository root runs the full stack: backend,
-import worker, frontend, and a PostgreSQL database. Redis is included but
-disabled by default (it's optional per the project spec).
+import worker, tracking worker, frontend, and a PostgreSQL database. Redis
+is included but disabled by default (it's optional per the project spec).
 
 The backend image's build context is the repository root, not `backend/`,
 because the backend depends on the sibling `importer` and `tracking`
-packages (see `docs/architecture.md`). Both `backend` and `worker` use the
-same image (`backend/Dockerfile`) - `worker` just overrides the entrypoint
-to run `app.worker` (the mail-account polling loop, Phase 2) instead of
-Uvicorn.
+packages (see `docs/architecture.md`). `backend`, `worker`, and
+`tracking-worker` all use the same image (`backend/Dockerfile`) - `worker`
+and `tracking-worker` just override the entrypoint to run `app.worker`
+(mail-account polling, Phase 2) or `app.tracking_worker` (shipment status
+refresh, Phase 3) instead of Uvicorn.
 
 ## First run
 
@@ -24,6 +25,9 @@ Edit `backend/config.yaml`:
 - `security.jwt_secret_key` - generate a real secret before anything but
   local experimentation:
   `python3 -c "import secrets; print(secrets.token_urlsafe(64))"`.
+- `tracking_provider.name` / `tracking_provider.api_key` - set these to
+  enable automatic tracking-status refresh (Phase 3). Leave `name: "none"`
+  to skip it; the `tracking-worker` container idles harmlessly in that case.
 
 Then:
 
@@ -39,6 +43,10 @@ docker compose up --build
 - Add a mail account via `POST /api/v1/mail-accounts` (or the frontend, once
   that UI lands) and the `worker` container polls it automatically once its
   `poll_interval_seconds` has elapsed.
+- With a `tracking_provider` configured, the `tracking-worker` container
+  refreshes every non-terminal shipment's status on
+  `tracking_provider.poll_interval_seconds`. You can also trigger a refresh
+  for one shipment on demand via `POST /shipments/{id}/refresh-tracking`.
 
 ## Why Postgres in Docker but SQLite by default outside it?
 
@@ -64,13 +72,15 @@ later phase) needs it.
 ## Rebuilding after dependency changes
 
 ```bash
-docker compose build --no-cache backend worker  # after editing backend/pyproject.toml,
-                                                 # importer/pyproject.toml, or tracking/pyproject.toml
-docker compose build --no-cache frontend        # after editing frontend/package.json
+docker compose build --no-cache backend worker tracking-worker  # after editing
+                                                                  # backend/pyproject.toml,
+                                                                  # importer/pyproject.toml, or
+                                                                  # tracking/pyproject.toml
+docker compose build --no-cache frontend                         # after editing frontend/package.json
 ```
 
 ## Logs and data persistence
 
 - Postgres data: named volume `db-data`.
-- Backend/worker logs: named volume `backend-logs`, mounted at
-  `/app/backend/logs` (see `logging.directory` in `config.yaml`).
+- Backend/worker/tracking-worker logs: named volume `backend-logs`, mounted
+  at `/app/backend/logs` (see `logging.directory` in `config.yaml`).

@@ -35,6 +35,24 @@ services:
     networks:
       - parcel-server
 
+  # Polls the configured tracking provider for every non-terminal shipment
+  # (Phase 3). Idles harmlessly if tracking_provider.name is "none".
+  tracking-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: parcel-server-backend
+    entrypoint: ["/tracking-worker-entrypoint.sh"]
+    restart: unless-stopped
+    volumes:
+      - ./backend/config.yaml:/app/backend/config.yaml:ro
+      - backend-logs:/app/backend/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - parcel-server
+
   frontend:
     build:
       context: ./frontend

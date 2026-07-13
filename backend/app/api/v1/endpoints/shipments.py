@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,8 @@ from app.models.user import User
 from app.schemas.shipment import ShipmentCreate, ShipmentRead, ShipmentUpdate
 from app.services.exceptions import NotFoundError
 from app.services.shipment_service import ShipmentService
+from app.services.tracking_provider_factory import get_configured_tracking_provider
+from app.services.tracking_sync_service import TrackingSyncService
 
 router = APIRouter(
     prefix="/shipments", tags=["shipments"], dependencies=[Depends(get_current_user)]
@@ -55,3 +58,29 @@ def update_shipment(
         return ShipmentService(db).update_status(shipment_id, current_user.id, payload)
     except NotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post("/{shipment_id}/refresh-tracking", response_model=ShipmentRead)
+def refresh_tracking(
+    shipment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ShipmentRead:
+    try:
+        shipment = ShipmentService(db).get_shipment(shipment_id, current_user.id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    provider = get_configured_tracking_provider()
+    if provider is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="No tracking provider is configured (tracking_provider.name is 'none')",
+        )
+
+    try:
+        return TrackingSyncService(db, provider).sync_shipment(shipment)
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Tracking provider error: {exc}"
+        ) from exc

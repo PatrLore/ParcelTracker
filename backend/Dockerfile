@@ -22,7 +22,8 @@ RUN pip install --no-cache-dir ./tracking ./importer ./backend
 
 COPY backend/entrypoint.sh /entrypoint.sh
 COPY backend/worker-entrypoint.sh /worker-entrypoint.sh
-RUN chmod +x /entrypoint.sh /worker-entrypoint.sh
+COPY backend/tracking-worker-entrypoint.sh /tracking-worker-entrypoint.sh
+RUN chmod +x /entrypoint.sh /worker-entrypoint.sh /tracking-worker-entrypoint.sh
 
 WORKDIR /app/backend
 EXPOSE 8000

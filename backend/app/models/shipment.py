@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -35,6 +35,10 @@ class Shipment(Base, TimestampMixin):
     estimated_delivery_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     delivery_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     last_update: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    #: Whether register() has already been called against the configured
+    #: TrackingProvider for this shipment (Phase 3) - avoids re-registering
+    #: on every sync.
+    tracking_registered: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     order: Mapped[Order] = relationship(back_populates="shipments")
     carrier: Mapped[Carrier] = relationship(back_populates="shipments")

@@ -4,12 +4,12 @@ A self-hosted parcel-tracking server. It reads shipping confirmations out of
 your inbox, extracts tracking numbers, identifies the carrier, and keeps
 track of every parcel's status - all running locally under your control.
 
-Phases 1 and 2 of a five-phase build are done (see
+Phases 1-3 of a five-phase build are done (see
 [`docs/roadmap.md`](docs/roadmap.md)): the foundation (backend, frontend,
-database, Docker, authentication, dashboard) and automatic email import
-(IMAP mailboxes, pluggable merchant parsers, carrier detection). Real
-tracking-provider integration, notifications, and statistics land in later
-phases.
+database, Docker, authentication, dashboard), automatic email import (IMAP
+mailboxes, pluggable merchant parsers, carrier detection), and tracking-
+provider integration (17TRACK, AfterShip, TrackingMore, Ship24). Notifications
+and statistics land in later phases.
 
 ## Stack
 
@@ -26,8 +26,11 @@ phases.
   Alternate) and carrier tracking-number detection (DHL, UPS, DPD, GLS,
   Hermes, FedEx, USPS, Cainiao, YunExpress, Amazon Logistics, Royal Mail,
   PostNL, ...).
-- **Docker:** full Compose stack - backend, import worker, frontend,
-  database, optional Redis.
+- **Tracking providers:** pluggable `TrackingProvider` interface with
+  17TRACK, AfterShip, TrackingMore, and Ship24 implementations - swap the
+  active one in `config.yaml`, no code changes.
+- **Docker:** full Compose stack - backend, import worker, tracking worker,
+  frontend, database, optional Redis.
 
 ## Quick start
 
@@ -49,9 +52,10 @@ See [`docs/docker.md`](docs/docker.md) for details.
 ### Local development
 
 ```bash
-scripts/dev-backend.sh    # FastAPI with auto-reload on :8000
-scripts/dev-frontend.sh   # Vite dev server on :5173
-scripts/dev-worker.sh     # mail-account import polling loop (optional)
+scripts/dev-backend.sh          # FastAPI with auto-reload on :8000
+scripts/dev-frontend.sh         # Vite dev server on :5173
+scripts/dev-worker.sh           # mail-account import polling loop (optional)
+scripts/dev-tracking-worker.sh  # shipment tracking refresh loop (optional)
 ```
 
 See [`docs/installation.md`](docs/installation.md) and
@@ -60,15 +64,15 @@ See [`docs/installation.md`](docs/installation.md) and
 ## Project structure
 
 ```
-backend/         FastAPI app + import worker: API, services, repositories,
-                 models, Alembic
+backend/         FastAPI app + import/tracking workers: API, services,
+                 repositories, models, Alembic
 frontend/        React + TypeScript + MUI single-page app
 database/        Data-model docs, seed data (migrations live in backend/)
 importer/        IMAP client + pluggable merchant email parsers (Phase 2,
                  standalone package - see docs/architecture.md)
-tracking/        Carrier tracking-number detection (Phase 2, implemented)
-                 + provider-agnostic tracking interface (Phase 3, not yet
-                 implemented) - standalone package
+tracking/        Carrier tracking-number detection (Phase 2) + provider-
+                 agnostic TrackingProvider interface and implementations
+                 (Phase 3) - standalone package
 notification/    Notification channel plugins (Phase 4)
 mqtt/            MQTT / Home Assistant Discovery (Phase 4)
 integrations/    Home Assistant integration, additional auth (Phase 4+)
