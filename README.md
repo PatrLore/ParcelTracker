@@ -10,9 +10,10 @@ foundation (backend, frontend, database, Docker, authentication,
 dashboard), automatic email import (IMAP mailboxes, pluggable merchant
 parsers, carrier detection), tracking-provider integration (17TRACK,
 AfterShip, TrackingMore, Ship24), notifications (webhook, Discord,
-Telegram, Email, Signal) plus MQTT/Home Assistant Discovery sensors, and a
-statistics dashboard. A dedicated Home Assistant custom integration and
-additional auth providers (OAuth, LDAP) remain open - see the roadmap.
+Telegram, Email, Signal) plus MQTT/Home Assistant Discovery sensors, a
+statistics dashboard, and a dedicated Home Assistant custom integration
+(native sensors and services, see `integrations/home_assistant/`).
+Additional auth providers (OAuth, LDAP) remain open - see the roadmap.
 
 ## Stack
 
@@ -23,6 +24,10 @@ additional auth providers (OAuth, LDAP) remain open - see the roadmap.
   alternatives (one config field, no code changes).
 - **Auth:** JWT (OAuth, LDAP, and Home Assistant auth planned for later
   phases).
+- **Home Assistant:** MQTT Discovery sensors (below) plus a dedicated
+  custom integration (`integrations/home_assistant/`) with a config flow,
+  five native sensors, and three services (refresh tracking, archive
+  parcel, send notification).
 - **Email import:** IMAP polling (Gmail, Outlook/Exchange, GMX, WEB.DE,
   Yahoo, ...) with auto-discovered merchant parsers (Amazon, eBay, Otto,
   MediaMarkt, Saturn, IKEA, Temu, Kaufland, AliExpress, Decathlon, Zalando,
@@ -87,11 +92,12 @@ notification/    Notification channel plugins: webhook, Discord, Telegram,
                  Email, Signal (Phase 4) - standalone package
 mqtt/            MQTT publisher + Home Assistant Discovery (Phase 4) -
                  standalone package
-integrations/    Home Assistant custom integration, additional auth
-                 (Phase 4+, not yet implemented)
+integrations/    Home Assistant custom integration (home_assistant/, done)
+                 plus additional auth providers (Phase 4+, not yet implemented)
 docs/            Architecture, installation, Docker, development, roadmap
-tests/           (backend/importer/tracking/notification/mqtt tests live
-                 alongside their own code; see docs/development.md)
+tests/           (backend/importer/tracking/notification/mqtt/
+                 integrations-home_assistant tests live alongside their own
+                 code; see docs/development.md)
 docker/          Supplementary Docker assets (compose file is at the repo root)
 scripts/         Dev/lint/test/migrate helper scripts
 ```

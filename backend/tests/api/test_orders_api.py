@@ -51,3 +51,25 @@ def test_health_endpoint(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_archive_and_unarchive_order(client, auth_headers):
+    create_response = client.post(
+        "/api/v1/orders", json={"merchant": "Amazon"}, headers=auth_headers
+    )
+    order_id = create_response.json()["id"]
+
+    archive_response = client.post(f"/api/v1/orders/{order_id}/archive", headers=auth_headers)
+    assert archive_response.status_code == 200
+    assert archive_response.json()["archived"] is True
+
+    unarchive_response = client.post(
+        f"/api/v1/orders/{order_id}/archive", json={"archived": False}, headers=auth_headers
+    )
+    assert unarchive_response.status_code == 200
+    assert unarchive_response.json()["archived"] is False
+
+
+def test_archive_missing_order_returns_404(client, auth_headers):
+    response = client.post("/api/v1/orders/999999/archive", headers=auth_headers)
+    assert response.status_code == 404

@@ -105,3 +105,28 @@ def test_dashboard_summary_counts_by_status(db_session, user):
     assert summary.delivered_today == 1
     assert summary.expected_tomorrow == 1
     assert len(summary.recent_shipments) == 3
+
+
+def test_archiving_order_excludes_its_shipments_from_dashboard(db_session, user):
+    order = OrderService(db_session).create_order(OrderCreate(merchant="IKEA"), user.id)
+    shipment_service = ShipmentService(db_session)
+    shipment = shipment_service.create_shipment(
+        ShipmentCreate(tracking_number="A1", order_id=order.id)
+    )
+    shipment_service.update_status(
+        shipment.id, user.id, ShipmentUpdate(tracking_status=ShipmentStatus.IN_TRANSIT)
+    )
+
+    before = DashboardService(db_session).get_summary(user.id)
+    assert before.in_transit == 1
+
+    archived = OrderService(db_session).set_archived(order.id, user.id, True)
+    assert archived.archived is True
+
+    after = DashboardService(db_session).get_summary(user.id)
+    assert after.in_transit == 0
+    assert after.recent_shipments == []
+
+    unarchived = OrderService(db_session).set_archived(order.id, user.id, False)
+    assert unarchived.archived is False
+    assert DashboardService(db_session).get_summary(user.id).in_transit == 1

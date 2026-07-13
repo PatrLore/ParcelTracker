@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.database import get_db
 from app.models.user import User
-from app.schemas.order import OrderCreate, OrderRead, OrderUpdate
+from app.schemas.order import OrderArchiveRequest, OrderCreate, OrderRead, OrderUpdate
 from app.services.exceptions import NotFoundError
 from app.services.order_service import OrderService
 
@@ -67,5 +67,22 @@ def delete_order(
 ) -> None:
     try:
         OrderService(db).delete_order(order_id, current_user.id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post("/{order_id}/archive", response_model=OrderRead)
+def archive_order(
+    order_id: int,
+    payload: OrderArchiveRequest | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> OrderRead:
+    """Archives (or, with ``archived: false``, unarchives) an order. Archived
+    orders' shipments are excluded from the dashboard summary but still
+    count toward the lifetime statistics."""
+    archived = payload.archived if payload is not None else True
+    try:
+        return OrderService(db).set_archived(order_id, current_user.id, archived)
     except NotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

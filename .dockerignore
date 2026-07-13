@@ -9,6 +9,8 @@ backend/data
 backend/logs
 backend/config.yaml
 
+integrations/home_assistant/.venv
+
 importer/*.egg-info
 tracking/*.egg-info
 notification/*.egg-info

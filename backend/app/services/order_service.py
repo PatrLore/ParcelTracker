@@ -42,3 +42,10 @@ class OrderService:
         order = self.get_order(order_id, user_id)
         self.orders.delete(order)
         self.orders.commit()
+
+    def set_archived(self, order_id: int, user_id: int, archived: bool) -> Order:
+        order = self.get_order(order_id, user_id)
+        order.archived = archived
+        self.orders.commit()
+        self.db.refresh(order)
+        return order

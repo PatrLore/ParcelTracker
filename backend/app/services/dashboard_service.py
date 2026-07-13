@@ -21,12 +21,20 @@ class DashboardService:
         tomorrow = today + timedelta(days=1)
 
         in_transit = self.shipments.count_by_status(
-            user_id, ShipmentStatus.IN_TRANSIT
-        ) + self.shipments.count_by_status(user_id, ShipmentStatus.OUT_FOR_DELIVERY)
-        delayed = self.shipments.count_by_status(user_id, ShipmentStatus.DELAYED)
-        delivered_today = self.shipments.count_delivered_on(user_id, today)
-        expected_tomorrow = self.shipments.count_expected_on(user_id, tomorrow)
-        new_confirmations = self.shipments.count_by_status(user_id, ShipmentStatus.LABEL_CREATED)
+            user_id, ShipmentStatus.IN_TRANSIT, exclude_archived=True
+        ) + self.shipments.count_by_status(
+            user_id, ShipmentStatus.OUT_FOR_DELIVERY, exclude_archived=True
+        )
+        delayed = self.shipments.count_by_status(
+            user_id, ShipmentStatus.DELAYED, exclude_archived=True
+        )
+        delivered_today = self.shipments.count_delivered_on(user_id, today, exclude_archived=True)
+        expected_tomorrow = self.shipments.count_expected_on(
+            user_id, tomorrow, exclude_archived=True
+        )
+        new_confirmations = self.shipments.count_by_status(
+            user_id, ShipmentStatus.LABEL_CREATED, exclude_archived=True
+        )
 
         return DashboardSummary(
             in_transit=in_transit,
@@ -34,5 +42,5 @@ class DashboardService:
             expected_tomorrow=expected_tomorrow,
             delayed=delayed,
             new_confirmations=new_confirmations,
-            recent_shipments=self.shipments.recent(user_id),
+            recent_shipments=self.shipments.recent(user_id, exclude_archived=True),
         )

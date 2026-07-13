@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     carriers,
     dashboard,
     mail_accounts,
+    notifications,
     orders,
     shipments,
     statistics,
@@ -24,3 +25,4 @@ api_router.include_router(carriers.router)
 api_router.include_router(dashboard.router)
 api_router.include_router(mail_accounts.router)
 api_router.include_router(statistics.router)
+api_router.include_router(notifications.router)

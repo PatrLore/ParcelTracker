@@ -53,7 +53,10 @@
   signal-cli-rest-api sidecar - Signal has no official bot API of its
   own). Each is independently enabled in `config.yaml`; a
   `NotificationDispatcher` fans a message out to every enabled channel,
-  isolating one channel's failure from the rest.
+  isolating one channel's failure from the rest. A manual trigger
+  (`POST /notifications/send`) fans an ad-hoc message out the same way -
+  added for the Home Assistant integration's `send_notification` service,
+  useful standalone too.
 - `mqtt/` MQTT Discovery sensors (done): `parcel.total`, `parcel.in_transit`,
   `parcel.delivered_today`, `parcel.next_delivery`, `parcel.delayed`,
   published (retained) via Home Assistant's MQTT Discovery convention.
@@ -61,10 +64,19 @@
   shipment transitioning to delivered/delayed, both dispatch a
   notification; the tracking worker also republishes MQTT sensor state on
   its own configurable interval.
-- `integrations/` Home Assistant *custom integration* (native sensors +
-  services, as opposed to generic MQTT Discovery) - not done; this would be
-  a separate deliverable in its own repository following Home Assistant's
-  integration structure (see `mqtt/README.md`).
+- `integrations/home_assistant/` - Home Assistant *custom integration*
+  (done): native sensors (active parcels, next/last delivery, top
+  merchant/carrier) and services (`refresh_tracking`, `archive_parcel`,
+  `send_notification`), talking to the REST API via a config flow rather
+  than MQTT Discovery - see `integrations/home_assistant/README.md`. Its
+  `archive_parcel` service is backed by a new `Order.archived` flag
+  (`POST /orders/{id}/archive`) that also excludes archived orders'
+  shipments from the dashboard summary (statistics stay lifetime-inclusive
+  - see `app/services/dashboard_service.py`). Not yet done: end-to-end
+  validation against a live Home Assistant instance (only the REST client,
+  `api.py`, has an automated test suite - the config flow/coordinator/
+  sensor platform require the `homeassistant` package itself to exercise,
+  which isn't installed in this repo).
 - Additional auth providers (OAuth, LDAP, Home Assistant auth) - not done.
 - Not yet done: the four HTTP-based channels' request/response handling has
   not been validated against the live APIs (see each channel module's

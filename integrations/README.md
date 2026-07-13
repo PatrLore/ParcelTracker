@@ -1,8 +1,12 @@
 # integrations
 
-Phase 4+. Deeper platform integrations beyond generic notifications:
+Deeper platform integrations beyond generic notifications:
 
-- Home Assistant custom integration (sensors: parcel count, next delivery,
-  last delivery, merchant, carrier; services: refresh tracking, archive
-  parcel, send notification).
-- Additional authentication providers: OAuth, LDAP, Home Assistant auth.
+- **`home_assistant/`** (done) - a native Home Assistant custom integration
+  (`custom_components/parcel_server/`): sensors (active parcels, next
+  delivery, last delivery, top merchant, top carrier) and services
+  (`refresh_tracking`, `archive_parcel`, `send_notification`). See
+  `home_assistant/README.md`. Complements, rather than replaces, the
+  generic MQTT Discovery sensors already published by the `mqtt/` package.
+- Additional authentication providers: OAuth, LDAP, Home Assistant auth -
+  not yet done, see `docs/roadmap.md`.

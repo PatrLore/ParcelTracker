@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, Enum, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, Date, Enum, ForeignKey, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
@@ -33,6 +33,7 @@ class Order(Base, TimestampMixin):
         Enum(OrderStatus, native_enum=False), default=OrderStatus.PENDING, nullable=False
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
 
     user: Mapped[User] = relationship(back_populates="orders")
     shipments: Mapped[list[Shipment]] = relationship(

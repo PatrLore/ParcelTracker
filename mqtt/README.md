@@ -24,11 +24,14 @@ Assistant sees the last known values immediately).
 cd mqtt && ../backend/.venv/bin/pytest
 ```
 
-## Out of scope for this repository
+## Relationship to the dedicated Home Assistant integration
 
 A dedicated Home Assistant *custom integration* (its own
 `custom_components/parcel_server/` with native sensors and services, as
-opposed to generic MQTT Discovery) is a separate deliverable - it would
-live in its own repository following Home Assistant's integration
-structure, not here. MQTT Discovery gets the same sensors into Home
-Assistant today without that extra project.
+opposed to generic MQTT Discovery) now lives at
+`integrations/home_assistant/` - see its README. It complements this
+package rather than replacing it: MQTT Discovery still gets sensors into
+Home Assistant with zero extra setup (just an MQTT broker), while the
+custom integration adds a config flow and the three services
+(`refresh_tracking`, `archive_parcel`, `send_notification`) MQTT alone
+can't express.

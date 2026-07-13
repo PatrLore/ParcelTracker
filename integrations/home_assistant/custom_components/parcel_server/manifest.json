@@ -1,0 +1,11 @@
+{
+  "domain": "parcel_server",
+  "name": "Parcel Server",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/PatrLore/ParcelTracker/blob/main/integrations/home_assistant/README.md",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}

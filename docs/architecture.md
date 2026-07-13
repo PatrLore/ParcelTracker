@@ -27,9 +27,16 @@ Parcel Server is split into independently deployable/installable units:
 - **`mqtt/`** — a standalone, database-free Python package: an MQTT
   publisher with Home Assistant MQTT Discovery for the five `parcel.*`
   sensors. Phase 4.
-- **`integrations/`** — future-phase package (Phase 4+, a dedicated Home
-  Assistant custom integration and additional auth providers), currently a
-  placeholder.
+- **`integrations/`** — deeper platform integrations beyond generic
+  notifications. `home_assistant/` (Phase 4+, done) is a native Home
+  Assistant custom integration (`custom_components/parcel_server/`) talking
+  to the REST API directly - a config flow, five sensors, and three
+  services (`refresh_tracking`, `archive_parcel`, `send_notification`).
+  Unlike `importer`/`tracking`/`notification`/`mqtt`, it isn't pip-installed
+  into the backend's virtualenv - it's a Home Assistant custom_component,
+  installed by copying it into Home Assistant's own config directory (see
+  `integrations/home_assistant/README.md`). Additional auth providers
+  (OAuth, LDAP) remain a placeholder.
 
 `importer`, `tracking`, `notification`, and `mqtt` all have zero dependency
 on `backend`, FastAPI, or SQLAlchemy - they're plain Python libraries

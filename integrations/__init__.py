@@ -1,3 +1,5 @@
-"""Third-party platform integrations (Phase 4+): Home Assistant custom
-integration, OAuth, LDAP, and future external systems.
+"""Third-party platform integrations. See ``home_assistant/`` for the
+native Home Assistant custom integration (its own
+``custom_components/parcel_server/``, not a pip-installed package like its
+siblings). OAuth/LDAP auth providers are future work.
 """

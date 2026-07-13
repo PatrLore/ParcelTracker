@@ -84,28 +84,39 @@ class ShipmentRepository(BaseRepository[Shipment]):
         )
         return self.db.scalar(stmt)
 
-    def _base_user_query(self, user_id: int):
-        return (
+    def _base_user_query(self, user_id: int, exclude_archived: bool = False):
+        stmt = (
             select(Shipment)
             .join(Order, Shipment.order_id == Order.id)
             .where(Order.user_id == user_id)
         )
+        if exclude_archived:
+            stmt = stmt.where(Order.archived.is_(False))
+        return stmt
 
-    def count_by_status(self, user_id: int, status: ShipmentStatus) -> int:
-        stmt = self._base_user_query(user_id).where(Shipment.tracking_status == status)
+    def count_by_status(
+        self, user_id: int, status: ShipmentStatus, exclude_archived: bool = False
+    ) -> int:
+        stmt = self._base_user_query(user_id, exclude_archived).where(
+            Shipment.tracking_status == status
+        )
         return self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
 
-    def count_delivered_on(self, user_id: int, day: date) -> int:
-        stmt = self._base_user_query(user_id).where(Shipment.delivery_date == day)
+    def count_delivered_on(self, user_id: int, day: date, exclude_archived: bool = False) -> int:
+        stmt = self._base_user_query(user_id, exclude_archived).where(Shipment.delivery_date == day)
         return self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
 
-    def count_expected_on(self, user_id: int, day: date) -> int:
-        stmt = self._base_user_query(user_id).where(Shipment.estimated_delivery_date == day)
+    def count_expected_on(self, user_id: int, day: date, exclude_archived: bool = False) -> int:
+        stmt = self._base_user_query(user_id, exclude_archived).where(
+            Shipment.estimated_delivery_date == day
+        )
         return self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
 
-    def recent(self, user_id: int, limit: int = 10) -> list[Shipment]:
+    def recent(
+        self, user_id: int, limit: int = 10, exclude_archived: bool = False
+    ) -> list[Shipment]:
         stmt = (
-            self._base_user_query(user_id)
+            self._base_user_query(user_id, exclude_archived)
             .options(joinedload(Shipment.carrier), joinedload(Shipment.tracking_events))
             .order_by(Shipment.updated_at.desc())
             .limit(limit)

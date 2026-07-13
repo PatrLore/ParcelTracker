@@ -1,0 +1,69 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Parcel Server",
+        "data": {
+          "base_url": "Base URL",
+          "email": "Email",
+          "password": "Password",
+          "verify_ssl": "Verify SSL certificate"
+        },
+        "data_description": {
+          "base_url": "e.g. http://parcel-server.local:8000"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password",
+      "cannot_connect": "Could not connect to the Parcel Server backend"
+    },
+    "abort": {
+      "already_configured": "This account is already configured"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "active_parcels": { "name": "Active parcels" },
+      "next_delivery": { "name": "Next delivery" },
+      "last_delivery": { "name": "Last delivery" },
+      "top_merchant": { "name": "Top merchant" },
+      "top_carrier": { "name": "Top carrier" }
+    }
+  },
+  "services": {
+    "refresh_tracking": {
+      "name": "Refresh tracking",
+      "description": "Manually triggers an immediate tracking-status refresh for one shipment.",
+      "fields": {
+        "shipment_id": {
+          "name": "Shipment ID",
+          "description": "The Parcel Server shipment ID to refresh."
+        }
+      }
+    },
+    "archive_parcel": {
+      "name": "Archive parcel",
+      "description": "Archives (or unarchives) an order.",
+      "fields": {
+        "order_id": {
+          "name": "Order ID",
+          "description": "The Parcel Server order ID to archive."
+        },
+        "archived": {
+          "name": "Archived",
+          "description": "Set to false to unarchive instead."
+        }
+      }
+    },
+    "send_notification": {
+      "name": "Send notification",
+      "description": "Sends a one-off message through every configured notification channel.",
+      "fields": {
+        "title": { "name": "Title", "description": "The notification title." },
+        "message": { "name": "Message", "description": "The notification body." },
+        "event": { "name": "Event", "description": "A short machine-readable event tag." }
+      }
+    }
+  }
+}

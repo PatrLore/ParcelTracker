@@ -40,6 +40,11 @@ class OrderRead(OrderBase):
 
     id: int
     user_id: int
+    archived: bool = False
     created_at: datetime
     updated_at: datetime
     shipments: list[ShipmentRead] = []
+
+
+class OrderArchiveRequest(BaseModel):
+    archived: bool = True

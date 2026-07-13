@@ -81,6 +81,24 @@ cd backend
 Always review the generated migration - autogenerate does not detect every
 kind of change (renames, some constraint changes).
 
+### Home Assistant integration (`integrations/home_assistant/`)
+
+Not one of the four sibling packages above - it's a Home Assistant
+*custom_component*, so it isn't pip-installed into the backend venv and
+most of it (`__init__.py`, `config_flow.py`, `coordinator.py`, `sensor.py`)
+imports `homeassistant.*`, which isn't a dependency of this repo. Only
+`api.py` (the REST client) is homeassistant-free and has its own test
+suite, in its own venv:
+
+```bash
+cd integrations/home_assistant
+python3 -m venv .venv && .venv/bin/pip install -r requirements_test.txt
+.venv/bin/pytest
+```
+
+See `integrations/home_assistant/README.md` for installing the integration
+itself into a real Home Assistant instance.
+
 ### Adding an endpoint
 
 1. Add/extend the Pydantic schema in `app/schemas/`.

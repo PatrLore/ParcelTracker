@@ -1,0 +1,60 @@
+refresh_tracking:
+  name: Refresh tracking
+  description: Manually triggers an immediate tracking-status refresh for one shipment.
+  fields:
+    shipment_id:
+      name: Shipment ID
+      description: The Parcel Server shipment ID to refresh.
+      required: true
+      example: 42
+      selector:
+        number:
+          min: 1
+          mode: box
+
+archive_parcel:
+  name: Archive parcel
+  description: Archives (or unarchives) an order, hiding its shipments from the active-parcels dashboard.
+  fields:
+    order_id:
+      name: Order ID
+      description: The Parcel Server order ID to archive.
+      required: true
+      example: 17
+      selector:
+        number:
+          min: 1
+          mode: box
+    archived:
+      name: Archived
+      description: Set to false to unarchive instead.
+      required: false
+      default: true
+      selector:
+        boolean:
+
+send_notification:
+  name: Send notification
+  description: Sends a one-off message through every notification channel configured on the Parcel Server backend.
+  fields:
+    title:
+      name: Title
+      description: The notification title.
+      required: true
+      example: Parcel update
+      selector:
+        text:
+    message:
+      name: Message
+      description: The notification body.
+      required: true
+      example: Your parcel from Amazon has shipped.
+      selector:
+        text:
+    event:
+      name: Event
+      description: A short machine-readable event tag included in the dispatched message.
+      required: false
+      default: manual
+      selector:
+        text:
