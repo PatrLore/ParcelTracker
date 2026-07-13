@@ -39,6 +39,25 @@ integration" → Run workflow) if you'd rather download one release asset
 than copy a folder - not required for HACS, just a manual-install
 convenience.
 
+## Branding
+
+`custom_components/parcel_server/brand/` ships the integration's own icon
+and logo (light + dark variants, at the exact sizes Home Assistant's
+brands system expects: `icon.png` 256x256, `icon@2x.png` 512x512,
+`logo.png`/`logo@2x.png` landscape, plus `dark_*` counterparts). Since Home
+Assistant 2026.3, a `brand/` folder inside a custom integration is picked
+up automatically - no PR to the separate `home-assistant/brands`
+repository needed, and no manifest.json flag to opt in. Local images take
+priority over anything on the brands CDN. On Home Assistant versions
+older than 2026.3 (this integration itself only requires 2024.2+, see
+`hacs.json`), the folder is simply ignored and a generic icon shows
+instead - not a failure, just no local branding on older cores.
+
+(HACS's own download-list icon may still show a generic placeholder for a
+few versions after installing - a known HACS-side lag behind this HA
+feature, not a sign anything here is misconfigured; the icon appears
+correctly once the integration itself is set up under Devices & Services.)
+
 ## Sensors
 
 One "Parcel Server" device with five sensors, refreshed every 60 seconds:
