@@ -18,7 +18,8 @@ for day-to-day development workflow.
 ```bash
 cd backend
 python3.13 -m venv .venv
-.venv/bin/pip install -e "../tracking[dev]" -e "../importer[dev]" -e ".[dev]"
+.venv/bin/pip install -e "../tracking[dev]" -e "../importer[dev]" \
+  -e "../notification[dev]" -e "../mqtt[dev]" -e ".[dev]"
 cp config.example.yaml config.yaml   # review/edit before continuing
 .venv/bin/alembic upgrade head
 .venv/bin/uvicorn app.main:app --reload
@@ -77,6 +78,20 @@ It refreshes every non-terminal shipment's status on
 `tracking_provider.poll_interval_seconds`. Without it running (or with
 `tracking_provider.name: "none"`), shipments can still be refreshed
 manually via `POST /api/v1/shipments/{id}/refresh-tracking`.
+
+The same worker process also republishes MQTT sensor state (see below) on
+its own interval - no separate process needed for that.
+
+### Notifications and MQTT (Phase 4, optional)
+
+Enable any of `notification.webhook` / `.discord` / `.telegram` / `.email`
+/ `.signal` in `config.yaml` to get notified when a new shipping
+confirmation is detected or a shipment becomes delivered/delayed - all are
+off by default. Set `mqtt.enabled: true` (and `mqtt.host`, pointing at any
+MQTT broker, e.g. Home Assistant's own Mosquitto add-on) to have the
+tracking worker publish `parcel.total` / `.in_transit` /
+`.delivered_today` / `.next_delivery` / `.delayed` as Home Assistant MQTT
+Discovery sensors.
 
 ## Configuration
 

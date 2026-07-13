@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the backend, importer, and tracking test suites.
+# Run the backend, importer, tracking, notification, and mqtt test suites.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,3 +13,9 @@ echo "== importer =="
 
 echo "== tracking =="
 (cd "$root/tracking" && "$python" -m pytest)
+
+echo "== notification =="
+(cd "$root/notification" && "$python" -m pytest)
+
+echo "== mqtt =="
+(cd "$root/mqtt" && "$python" -m pytest)

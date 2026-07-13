@@ -13,7 +13,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install -e "tracking[dev]" -e "importer[dev]" -e "backend[dev]"
+      - run: |
+          pip install -e "tracking[dev]" -e "importer[dev]" \
+            -e "notification[dev]" -e "mqtt[dev]" -e "backend[dev]"
       - run: ruff check app tests
         working-directory: backend
       - run: ruff format --check app tests
@@ -22,12 +24,20 @@ jobs:
         working-directory: importer
       - run: ruff check .
         working-directory: tracking
+      - run: ruff check .
+        working-directory: notification
+      - run: ruff check .
+        working-directory: mqtt
       - run: pytest --cov=app --cov-report=term-missing
         working-directory: backend
       - run: pytest
         working-directory: importer
       - run: pytest
         working-directory: tracking
+      - run: pytest
+        working-directory: notification
+      - run: pytest
+        working-directory: mqtt
 
   frontend:
     runs-on: ubuntu-latest

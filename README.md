@@ -4,12 +4,14 @@ A self-hosted parcel-tracking server. It reads shipping confirmations out of
 your inbox, extracts tracking numbers, identifies the carrier, and keeps
 track of every parcel's status - all running locally under your control.
 
-Phases 1-3 of a five-phase build are done (see
+Phases 1-4 of a five-phase build are done (see
 [`docs/roadmap.md`](docs/roadmap.md)): the foundation (backend, frontend,
 database, Docker, authentication, dashboard), automatic email import (IMAP
-mailboxes, pluggable merchant parsers, carrier detection), and tracking-
-provider integration (17TRACK, AfterShip, TrackingMore, Ship24). Notifications
-and statistics land in later phases.
+mailboxes, pluggable merchant parsers, carrier detection), tracking-provider
+integration (17TRACK, AfterShip, TrackingMore, Ship24), and notifications
+(webhook, Discord, Telegram, Email, Signal) plus MQTT/Home Assistant
+Discovery sensors. A dedicated Home Assistant custom integration,
+additional auth providers, and statistics land in later work.
 
 ## Stack
 
@@ -29,8 +31,13 @@ and statistics land in later phases.
 - **Tracking providers:** pluggable `TrackingProvider` interface with
   17TRACK, AfterShip, TrackingMore, and Ship24 implementations - swap the
   active one in `config.yaml`, no code changes.
+- **Notifications:** webhook, Discord, Telegram, Email (SMTP), and Signal
+  (via signal-cli-rest-api) - independently enabled, fan out to all of them
+  on new confirmations and delivered/delayed shipments.
+- **MQTT:** Home Assistant MQTT Discovery sensors (`parcel.total`,
+  `.in_transit`, `.delivered_today`, `.next_delivery`, `.delayed`).
 - **Docker:** full Compose stack - backend, import worker, tracking worker,
-  frontend, database, optional Redis.
+  frontend, database, optional Redis, optional MQTT broker.
 
 ## Quick start
 
@@ -73,12 +80,15 @@ importer/        IMAP client + pluggable merchant email parsers (Phase 2,
 tracking/        Carrier tracking-number detection (Phase 2) + provider-
                  agnostic TrackingProvider interface and implementations
                  (Phase 3) - standalone package
-notification/    Notification channel plugins (Phase 4)
-mqtt/            MQTT / Home Assistant Discovery (Phase 4)
-integrations/    Home Assistant integration, additional auth (Phase 4+)
+notification/    Notification channel plugins: webhook, Discord, Telegram,
+                 Email, Signal (Phase 4) - standalone package
+mqtt/            MQTT publisher + Home Assistant Discovery (Phase 4) -
+                 standalone package
+integrations/    Home Assistant custom integration, additional auth
+                 (Phase 4+, not yet implemented)
 docs/            Architecture, installation, Docker, development, roadmap
-tests/           (backend/importer/tracking tests live alongside their own
-                 code; see docs/development.md)
+tests/           (backend/importer/tracking/notification/mqtt tests live
+                 alongside their own code; see docs/development.md)
 docker/          Supplementary Docker assets (compose file is at the repo root)
 scripts/         Dev/lint/test/migrate helper scripts
 ```

@@ -19,6 +19,7 @@ from app.database import SessionLocal
 from app.models.mail_account import MailAccount
 from app.repositories.mail_account_repository import MailAccountRepository
 from app.services.email_ingestion_service import EmailIngestionService
+from app.services.notification_dispatch_factory import get_configured_notification_dispatcher
 
 logger = get_logger(__name__)
 
@@ -34,6 +35,8 @@ def _due_for_sync(account: MailAccount, now: datetime) -> bool:
 
 def run_once() -> None:
     """Sync every active, due mail account a single time."""
+    dispatcher = get_configured_notification_dispatcher()
+
     with SessionLocal() as db:
         accounts = MailAccountRepository(db).list_active()
         now = datetime.now(UTC)
@@ -42,7 +45,7 @@ def run_once() -> None:
             if not _due_for_sync(account, now):
                 continue
             try:
-                result = EmailIngestionService(db).sync_account(account)
+                result = EmailIngestionService(db, dispatcher=dispatcher).sync_account(account)
                 logger.info(
                     "Synced %s: %d new email(s), %d matched order(s), %d new shipment(s)",
                     account.email_address,

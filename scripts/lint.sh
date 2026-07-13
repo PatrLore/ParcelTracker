@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Run linters and formatters check for backend, importer, tracking, and frontend.
+# Run linters and formatters check for backend, importer, tracking,
+# notification, mqtt, and frontend.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,6 +17,12 @@ echo "== importer: ruff check =="
 
 echo "== tracking: ruff check =="
 "$ruff" check "$root/tracking"
+
+echo "== notification: ruff check =="
+"$ruff" check "$root/notification"
+
+echo "== mqtt: ruff check =="
+"$ruff" check "$root/mqtt"
 
 echo "== frontend: oxlint =="
 (cd "$root/frontend" && npm run lint)

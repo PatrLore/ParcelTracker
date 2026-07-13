@@ -8,8 +8,9 @@ Parcel Server is split into independently deployable/installable units:
   (`/api/v1`), backed by SQLAlchemy models and Alembic migrations. Also runs
   as two separate worker processes: an **import worker**
   (`app/worker.py`, Phase 2) that polls mail accounts, and a **tracking
-  worker** (`app/tracking_worker.py`, Phase 3) that refreshes shipment
-  status via the configured tracking provider.
+  worker** (`app/tracking_worker.py`, Phase 3/4) that refreshes shipment
+  status via the configured tracking provider and republishes MQTT sensor
+  state.
 - **`frontend/`** — a React + TypeScript single-page app (Vite, MUI) that
   consumes the REST API.
 - **`importer/`** — a standalone, database-free Python package: an IMAP
@@ -19,17 +20,27 @@ Parcel Server is split into independently deployable/installable units:
   tracking-number detection (`carriers.py`, Phase 2, used by `importer`) and
   the `TrackingProvider` interface plus four concrete implementations
   (`providers/` - 17TRACK, AfterShip, TrackingMore, Ship24; Phase 3).
-- **`notification/`, `mqtt/`, `integrations/`** — future-phase packages
-  (Phase 4+), currently placeholders.
+- **`notification/`** — a standalone, database-free Python package: the
+  `NotificationChannel` interface plus five implementations (webhook,
+  Discord, Telegram, Email, Signal) and a fan-out `NotificationDispatcher`.
+  Phase 4.
+- **`mqtt/`** — a standalone, database-free Python package: an MQTT
+  publisher with Home Assistant MQTT Discovery for the five `parcel.*`
+  sensors. Phase 4.
+- **`integrations/`** — future-phase package (Phase 4+, a dedicated Home
+  Assistant custom integration and additional auth providers), currently a
+  placeholder.
 
-`importer` and `tracking` have zero dependency on `backend`, FastAPI, or
-SQLAlchemy - they're plain Python libraries installed into the backend's
-virtualenv (`pip install -e ../importer -e ../tracking`, see
-`scripts/dev-backend.sh` and `backend/Dockerfile`). The backend is the only
-thing that depends on them, through
-`app/services/email_ingestion_service.py` - never the other way around, and
-never by reaching into their internals beyond the documented interface each
-exposes.
+`importer`, `tracking`, `notification`, and `mqtt` all have zero dependency
+on `backend`, FastAPI, or SQLAlchemy - they're plain Python libraries
+installed into the backend's virtualenv (`pip install -e ../importer
+-e ../tracking -e ../notification -e ../mqtt`, see `scripts/dev-backend.sh`
+and `backend/Dockerfile`). The backend is the only thing that depends on
+them, through one dedicated service module per package
+(`email_ingestion_service.py`, `tracking_sync_service.py`,
+`notification_dispatch_factory.py`, `mqtt_publish_service.py`) - never the
+other way around, and never by reaching into their internals beyond the
+documented interface each exposes.
 
 ## Backend layering
 
@@ -167,6 +178,42 @@ app/tracking_worker.py (separate process/container)
 - One shipment's provider request failing doesn't stop the rest of that
   sync pass (`TrackingSyncService.sync_due_shipments` catches per-shipment,
   the worker also wraps the whole pass defensively).
+
+## Notifications and MQTT (Phase 4)
+
+```
+new order/shipment confirmation  --> app/services/email_ingestion_service.py
+shipment -> DELIVERED / DELAYED  --> app/services/tracking_sync_service.py
+                                          |
+                                          v
+                          app/services/notification_dispatch_factory.py
+                                          |
+                                          v
+                       notification.NotificationDispatcher.dispatch(...)
+                          -> every enabled channel, independently
+```
+
+- Each channel (`notification/channels/*.py`) is independently enabled in
+  `config.yaml`'s `notification.*` section - nothing is sent anywhere by
+  default. `get_configured_notification_dispatcher()` is the one place
+  backend code builds the enabled-channel list; `EmailIngestionService` and
+  `TrackingSyncService` both take an optional `NotificationDispatcher` and
+  fire a message on the two events the spec calls for: a new order
+  confirmation, and a shipment becoming delivered or delayed.
+- `NotificationDispatcher.dispatch()` sends to every channel and swallows
+  per-channel exceptions (logged, not raised) - one broken webhook
+  shouldn't silence Telegram, email, and the rest.
+- MQTT works differently: instead of one-off messages, `mqtt.MqttPublisher`
+  publishes *retained* Home Assistant MQTT Discovery config once and
+  current sensor values (`parcel.total`, `.in_transit`, `.delivered_today`,
+  `.next_delivery`, `.delayed`) repeatedly, computed globally across every
+  user (`app/services/mqtt_publish_service.py`) - matching a single
+  Home-Assistant-per-household deployment rather than per-user sensors.
+- The tracking worker (`app/tracking_worker.py`) runs both the tracking
+  sync and the MQTT publish as two independently-scheduled jobs on one
+  30-second tick, each on its own configured interval
+  (`tracking_provider.poll_interval_seconds`, `mqtt.publish_interval_seconds`)
+  - the same pattern the mail worker uses for per-account polling.
 
 ## Database portability
 

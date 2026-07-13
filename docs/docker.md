@@ -28,6 +28,12 @@ Edit `backend/config.yaml`:
 - `tracking_provider.name` / `tracking_provider.api_key` - set these to
   enable automatic tracking-status refresh (Phase 3). Leave `name: "none"`
   to skip it; the `tracking-worker` container idles harmlessly in that case.
+- `notification.*` - enable any of webhook/Discord/Telegram/Email/Signal to
+  get notified on new confirmations and delivered/delayed shipments (Phase
+  4). All off by default.
+- `mqtt.*` - set `enabled: true` (and `host: "mosquitto"` if using the
+  bundled broker below) for Home Assistant MQTT Discovery sensors
+  (Phase 4).
 
 Then:
 
@@ -69,13 +75,30 @@ Also set `redis.enabled: true` in `backend/config.yaml` (host `redis`,
 port `6379`) once a feature that uses it (e.g. background job queues in a
 later phase) needs it.
 
+## Optional MQTT broker
+
+If you don't already run one, bring up the bundled Mosquitto broker:
+
+```bash
+docker compose --profile mqtt up --build
+```
+
+Set `mqtt.enabled: true` and `mqtt.host: "mosquitto"` in
+`backend/config.yaml`. The bundled broker (`docker/mosquitto.conf`) allows
+anonymous access - fine on an internal Docker network, but add
+authentication/TLS before exposing port 1883 beyond it. If you already run
+Home Assistant's own Mosquitto add-on (or any other broker), skip this
+profile and point `mqtt.host` at that broker instead.
+
 ## Rebuilding after dependency changes
 
 ```bash
 docker compose build --no-cache backend worker tracking-worker  # after editing
                                                                   # backend/pyproject.toml,
-                                                                  # importer/pyproject.toml, or
-                                                                  # tracking/pyproject.toml
+                                                                  # importer/pyproject.toml,
+                                                                  # tracking/pyproject.toml,
+                                                                  # notification/pyproject.toml, or
+                                                                  # mqtt/pyproject.toml
 docker compose build --no-cache frontend                         # after editing frontend/package.json
 ```
 

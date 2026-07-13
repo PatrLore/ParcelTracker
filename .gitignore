@@ -10,7 +10,7 @@ backend/logs/
 backend/config.yaml
 *.pyc
 
-# importer / tracking (Python, standalone packages)
+# importer / tracking / notification / mqtt (Python, standalone packages)
 importer/**/__pycache__/
 importer/*.egg-info/
 importer/.pytest_cache/
@@ -19,6 +19,14 @@ tracking/**/__pycache__/
 tracking/*.egg-info/
 tracking/.pytest_cache/
 tracking/.ruff_cache/
+notification/**/__pycache__/
+notification/*.egg-info/
+notification/.pytest_cache/
+notification/.ruff_cache/
+mqtt/**/__pycache__/
+mqtt/*.egg-info/
+mqtt/.pytest_cache/
+mqtt/.ruff_cache/
 
 # Frontend (Node)
 frontend/node_modules/

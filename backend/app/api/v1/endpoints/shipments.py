@@ -11,6 +11,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.shipment import ShipmentCreate, ShipmentRead, ShipmentUpdate
 from app.services.exceptions import NotFoundError
+from app.services.notification_dispatch_factory import get_configured_notification_dispatcher
 from app.services.shipment_service import ShipmentService
 from app.services.tracking_provider_factory import get_configured_tracking_provider
 from app.services.tracking_sync_service import TrackingSyncService
@@ -78,8 +79,9 @@ def refresh_tracking(
             detail="No tracking provider is configured (tracking_provider.name is 'none')",
         )
 
+    dispatcher = get_configured_notification_dispatcher()
     try:
-        return TrackingSyncService(db, provider).sync_shipment(shipment)
+        return TrackingSyncService(db, provider, dispatcher).sync_shipment(shipment)
     except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Tracking provider error: {exc}"

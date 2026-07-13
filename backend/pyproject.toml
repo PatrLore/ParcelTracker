@@ -20,9 +20,10 @@ dependencies = [
     "httpx>=0.27.0",
 ]
 
-# The sibling `importer` and `tracking` packages (repo root) are installed
-# separately - `pip install -e ../importer -e ../tracking` - rather than
-# declared here, since they're local-only and not published to PyPI. See
+# The sibling `importer`, `tracking`, `notification`, and `mqtt` packages
+# (repo root) are installed separately - `pip install -e ../importer
+# -e ../tracking -e ../notification -e ../mqtt` - rather than declared here,
+# since they're local-only and not published to PyPI. See
 # scripts/dev-backend.sh and Dockerfile.
 
 [project.optional-dependencies]

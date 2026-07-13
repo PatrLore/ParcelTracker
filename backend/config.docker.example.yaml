@@ -55,3 +55,38 @@ tracking_provider:
   name: "none"
   api_key: ""
   poll_interval_seconds: 900
+
+# Each notification channel is independently enabled - all off by default.
+notification:
+  webhook:
+    enabled: false
+    url: ""
+  discord:
+    enabled: false
+    webhook_url: ""
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+  signal:
+    enabled: false
+    base_url: ""
+    sender_number: ""
+    recipient_number: ""
+  email:
+    enabled: false
+    smtp_host: ""
+    smtp_port: 587
+    username: ""
+    password: ""
+    from_address: ""
+    to_address: ""
+    use_tls: true
+
+mqtt:
+  enabled: false
+  host: "mosquitto"
+  port: 1883
+  username: ""
+  password: ""
+  publish_interval_seconds: 60

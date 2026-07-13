@@ -7,7 +7,8 @@ cd "$(dirname "$0")/../backend"
 if [ ! -d .venv ]; then
   python3.13 -m venv .venv
   .venv/bin/pip install --upgrade pip
-  .venv/bin/pip install -e "../tracking[dev]" -e "../importer[dev]" -e ".[dev]"
+  .venv/bin/pip install -e "../tracking[dev]" -e "../importer[dev]" \
+    -e "../notification[dev]" -e "../mqtt[dev]" -e ".[dev]"
 fi
 
 if [ ! -f config.yaml ]; then

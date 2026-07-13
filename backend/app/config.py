@@ -99,6 +99,64 @@ class TrackingProviderSettings(BaseModel):
     poll_interval_seconds: int = 900
 
 
+class WebhookChannelSettings(BaseModel):
+    enabled: bool = False
+    url: str = ""
+
+
+class DiscordChannelSettings(BaseModel):
+    enabled: bool = False
+    webhook_url: str = ""
+
+
+class TelegramChannelSettings(BaseModel):
+    enabled: bool = False
+    bot_token: str = ""
+    chat_id: str = ""
+
+
+class SignalChannelSettings(BaseModel):
+    """See ``notification.channels.signal`` - ``base_url`` points at a
+    self-hosted signal-cli-rest-api sidecar, not at any Signal server."""
+
+    enabled: bool = False
+    base_url: str = ""
+    sender_number: str = ""
+    recipient_number: str = ""
+
+
+class EmailChannelSettings(BaseModel):
+    enabled: bool = False
+    smtp_host: str = ""
+    smtp_port: int = 587
+    username: str = ""
+    password: str = ""
+    from_address: str = ""
+    to_address: str = ""
+    use_tls: bool = True
+
+
+class NotificationSettings(BaseModel):
+    """Each channel is independently enabled/disabled - all off by default,
+    so nothing changes for anyone not using notifications."""
+
+    webhook: WebhookChannelSettings = Field(default_factory=WebhookChannelSettings)
+    discord: DiscordChannelSettings = Field(default_factory=DiscordChannelSettings)
+    telegram: TelegramChannelSettings = Field(default_factory=TelegramChannelSettings)
+    signal: SignalChannelSettings = Field(default_factory=SignalChannelSettings)
+    email: EmailChannelSettings = Field(default_factory=EmailChannelSettings)
+
+
+class MqttSettings(BaseModel):
+    enabled: bool = False
+    host: str = "localhost"
+    port: int = 1883
+    username: str = ""
+    password: str = ""
+    #: How often the tracking worker republishes sensor state, in seconds.
+    publish_interval_seconds: int = 60
+
+
 class Settings(BaseModel):
     """Root settings object assembled from ``config.yaml``."""
 
@@ -110,6 +168,8 @@ class Settings(BaseModel):
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
     tracking_provider: TrackingProviderSettings = Field(default_factory=TrackingProviderSettings)
+    notification: NotificationSettings = Field(default_factory=NotificationSettings)
+    mqtt: MqttSettings = Field(default_factory=MqttSettings)
 
 
 def _config_path() -> Path:

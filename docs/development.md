@@ -11,7 +11,7 @@ cd backend
 
 Or from the repo root: `scripts/test.sh`, `scripts/lint.sh`.
 
-## importer and tracking
+## importer, tracking, notification, and mqtt
 
 These are separate, installable packages at the repo root (see
 `docs/architecture.md`) - they have no database or FastAPI dependency, so
@@ -20,11 +20,14 @@ their own test suites run standalone:
 ```bash
 cd importer && ../backend/.venv/bin/pytest
 cd tracking && ../backend/.venv/bin/pytest
+cd notification && ../backend/.venv/bin/pytest
+cd mqtt && ../backend/.venv/bin/pytest
 ```
 
-`scripts/dev-backend.sh` installs both (`pip install -e ../tracking -e
-../importer`) into `backend/.venv` alongside the backend itself, so backend
-code can `import importer` / `import tracking` directly.
+`scripts/dev-backend.sh` installs all four (`pip install -e ../tracking
+-e ../importer -e ../notification -e ../mqtt`) into `backend/.venv`
+alongside the backend itself, so backend code can `import importer` /
+`import tracking` / `import notification` / `import mqtt` directly.
 
 ### Adding a merchant parser
 
@@ -53,6 +56,17 @@ literal. See any existing provider (e.g. `tracking/providers/aftership.py`)
 for the shape, and `tracking/tests/test_providers.py` for how to test one
 against `httpx.MockTransport` - no real API credentials or network access
 needed.
+
+### Adding a notification channel
+
+Add a new module to `notification/channels/` implementing
+`notification.channel.NotificationChannel` (`send(message)`), then wire it
+into `app/services/notification_dispatch_factory.py`'s
+`get_configured_notification_dispatcher()` and give it a settings block in
+`app/config.py`'s `NotificationSettings`. See any existing channel (e.g.
+`notification/channels/discord.py`) for the shape, and
+`notification/tests/test_channels_http.py` /
+`test_email_smtp.py` for how to test one without real network/SMTP access.
 
 ### Adding a migration
 

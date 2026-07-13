@@ -15,6 +15,7 @@ from typing import Protocol
 from importer.emails import RawEmail
 from importer.imap_client import ImapMailbox, MailboxConfig
 from importer.parsers import ParsedOrder, detect
+from notification import NotificationDispatcher, NotificationMessage
 from sqlalchemy.orm import Session
 
 from app.models.carrier import Carrier
@@ -46,9 +47,15 @@ MailboxFactory = Callable[[MailboxConfig], Mailbox]
 class EmailIngestionService:
     """Orchestrates one mailbox sync: fetch -> parse -> persist."""
 
-    def __init__(self, db: Session, mailbox_factory: MailboxFactory = ImapMailbox) -> None:
+    def __init__(
+        self,
+        db: Session,
+        mailbox_factory: MailboxFactory = ImapMailbox,
+        dispatcher: NotificationDispatcher | None = None,
+    ) -> None:
         self.db = db
         self._mailbox_factory = mailbox_factory
+        self._dispatcher = dispatcher
         self.mail_accounts = MailAccountRepository(db)
         self.emails = EmailRepository(db)
         self.orders = OrderRepository(db)
@@ -117,6 +124,18 @@ class EmailIngestionService:
                     status=OrderStatus.CONFIRMED,
                 )
             )
+            if self._dispatcher is not None:
+                self._dispatcher.dispatch(
+                    NotificationMessage(
+                        event="new_confirmation",
+                        title=f"New order from {parsed.merchant}",
+                        body=f"A shipping confirmation from {parsed.merchant} was detected.",
+                        metadata={
+                            "merchant": parsed.merchant,
+                            "order_number": parsed.order_number or "",
+                        },
+                    )
+                )
 
         if parsed.tracking_numbers and order.status == OrderStatus.CONFIRMED:
             order.status = OrderStatus.SHIPPED

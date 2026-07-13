@@ -46,14 +46,29 @@
   their live APIs (see each provider module's docstring) - only against
   fabricated responses matching their published schemas.
 
-## Phase 4 - Notifications & integrations
+## Phase 4 - Notifications & integrations (partially done)
 
-- `notification/` plugin channels: MQTT, Home Assistant, Telegram, Signal,
-  Discord, Email, webhooks.
-- `mqtt/` MQTT Discovery sensors (`parcel.total`, `parcel.in_transit`,
-  `parcel.delivered_today`, `parcel.next_delivery`, `parcel.delayed`).
-- `integrations/` Home Assistant custom integration (sensors + services),
-  additional auth providers (OAuth, LDAP, Home Assistant auth).
+- `notification/` plugin channels (done): generic webhook, Discord,
+  Telegram, Email (SMTP), and Signal (via a self-hosted
+  signal-cli-rest-api sidecar - Signal has no official bot API of its
+  own). Each is independently enabled in `config.yaml`; a
+  `NotificationDispatcher` fans a message out to every enabled channel,
+  isolating one channel's failure from the rest.
+- `mqtt/` MQTT Discovery sensors (done): `parcel.total`, `parcel.in_transit`,
+  `parcel.delivered_today`, `parcel.next_delivery`, `parcel.delayed`,
+  published (retained) via Home Assistant's MQTT Discovery convention.
+- Wired into the backend (done): a new order/shipment confirmation, and a
+  shipment transitioning to delivered/delayed, both dispatch a
+  notification; the tracking worker also republishes MQTT sensor state on
+  its own configurable interval.
+- `integrations/` Home Assistant *custom integration* (native sensors +
+  services, as opposed to generic MQTT Discovery) - not done; this would be
+  a separate deliverable in its own repository following Home Assistant's
+  integration structure (see `mqtt/README.md`).
+- Additional auth providers (OAuth, LDAP, Home Assistant auth) - not done.
+- Not yet done: the four HTTP-based channels' request/response handling has
+  not been validated against the live APIs (see each channel module's
+  docstring) - only against fabricated responses/fakes.
 
 ## Phase 5 - Statistics & polish
 

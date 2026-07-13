@@ -57,6 +57,32 @@ class ShipmentRepository(BaseRepository[Shipment]):
         )
         return list(self.db.scalars(stmt).unique().all())
 
+    def count_all(self) -> int:
+        """Shipment count across every user - used by the MQTT sensor publisher."""
+        return self.db.scalar(select(func.count()).select_from(Shipment)) or 0
+
+    def count_all_by_status(self, status: ShipmentStatus) -> int:
+        stmt = select(func.count()).select_from(
+            select(Shipment).where(Shipment.tracking_status == status).subquery()
+        )
+        return self.db.scalar(stmt) or 0
+
+    def count_all_delivered_on(self, day: date) -> int:
+        stmt = select(func.count()).select_from(
+            select(Shipment).where(Shipment.delivery_date == day).subquery()
+        )
+        return self.db.scalar(stmt) or 0
+
+    def next_delivery_date(self) -> date | None:
+        stmt = (
+            select(Shipment.estimated_delivery_date)
+            .where(Shipment.estimated_delivery_date.isnot(None))
+            .where(Shipment.tracking_status.notin_(TERMINAL_STATUSES))
+            .order_by(Shipment.estimated_delivery_date.asc())
+            .limit(1)
+        )
+        return self.db.scalar(stmt)
+
     def _base_user_query(self, user_id: int):
         return (
             select(Shipment)

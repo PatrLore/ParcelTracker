@@ -1,5 +1,6 @@
 # Build context is the repository root (see docker-compose.yml) because the
-# backend depends on the sibling `importer` and `tracking` packages.
+# backend depends on the sibling `importer`, `tracking`, `notification`, and
+# `mqtt` packages.
 FROM python:3.13-slim AS base
 
 WORKDIR /app
@@ -13,12 +14,14 @@ RUN apt-get update \
 
 COPY tracking ./tracking
 COPY importer ./importer
+COPY notification ./notification
+COPY mqtt ./mqtt
 COPY backend/pyproject.toml ./backend/pyproject.toml
 COPY backend/app ./backend/app
 COPY backend/alembic ./backend/alembic
 COPY backend/alembic.ini ./backend/alembic.ini
 
-RUN pip install --no-cache-dir ./tracking ./importer ./backend
+RUN pip install --no-cache-dir ./tracking ./importer ./notification ./mqtt ./backend
 
 COPY backend/entrypoint.sh /entrypoint.sh
 COPY backend/worker-entrypoint.sh /worker-entrypoint.sh

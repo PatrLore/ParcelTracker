@@ -93,9 +93,26 @@ services:
     networks:
       - parcel-server
 
+  # Optional: enable with `docker compose --profile mqtt up`.
+  # Set mqtt.enabled: true in backend/config.yaml (host: "mosquitto") to
+  # make use of it, or point mqtt.host at an existing broker instead and
+  # skip this service entirely.
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    profiles: ["mqtt"]
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - ./docker/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - parcel-server
+
 volumes:
   db-data:
   redis-data:
+  mosquitto-data:
   backend-logs:
 
 networks:

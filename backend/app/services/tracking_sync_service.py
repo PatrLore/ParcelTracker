@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import httpx
+from notification import NotificationDispatcher, NotificationMessage
 from sqlalchemy.orm import Session
 from tracking.provider import TrackingProvider
 
@@ -19,14 +20,25 @@ from app.repositories.shipment_repository import ShipmentRepository
 
 logger = get_logger(__name__)
 
+#: Status transitions worth interrupting someone about.
+_NOTIFY_ON_STATUSES = (ShipmentStatus.DELIVERED, ShipmentStatus.DELAYED)
+
 
 class TrackingSyncService:
-    def __init__(self, db: Session, provider: TrackingProvider) -> None:
+    def __init__(
+        self,
+        db: Session,
+        provider: TrackingProvider,
+        dispatcher: NotificationDispatcher | None = None,
+    ) -> None:
         self.db = db
         self.provider = provider
+        self._dispatcher = dispatcher
         self.shipments = ShipmentRepository(db)
 
     def sync_shipment(self, shipment: Shipment) -> Shipment:
+        previous_status = shipment.tracking_status
+
         if not shipment.tracking_registered:
             carrier_hint = shipment.carrier.name if shipment.carrier else None
             self.provider.register(shipment.tracking_number, carrier_hint=carrier_hint)
@@ -62,6 +74,13 @@ class TrackingSyncService:
         if events:
             shipment.last_update = max(_to_naive_utc(event.occurred_at) for event in events)
 
+        if (
+            self._dispatcher is not None
+            and shipment.tracking_status != previous_status
+            and shipment.tracking_status in _NOTIFY_ON_STATUSES
+        ):
+            self._dispatcher.dispatch(_status_change_message(shipment))
+
         self.shipments.commit()
         self.db.refresh(shipment)
         return shipment
@@ -84,6 +103,24 @@ class TrackingSyncService:
                 continue
             synced += 1
         return synced
+
+
+def _status_change_message(shipment: Shipment) -> NotificationMessage:
+    if shipment.tracking_status == ShipmentStatus.DELIVERED:
+        title = "Parcel delivered"
+        body = f"Your parcel ({shipment.tracking_number}) has been delivered."
+    else:
+        title = "Parcel delayed"
+        body = f"Your parcel ({shipment.tracking_number}) appears to be delayed."
+    return NotificationMessage(
+        event=f"shipment_{shipment.tracking_status.value}",
+        title=title,
+        body=body,
+        metadata={
+            "tracking_number": shipment.tracking_number,
+            "carrier": shipment.carrier.name if shipment.carrier else "",
+        },
+    )
 
 
 def _map_status(raw_status: str) -> ShipmentStatus:
