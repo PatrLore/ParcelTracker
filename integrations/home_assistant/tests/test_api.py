@@ -15,8 +15,13 @@ from aiohttp.test_utils import TestServer
 # parcel_server *package*, whose __init__.py does import homeassistant/
 # voluptuous (not installed here). Load it as a standalone module straight
 # from its file so importing it doesn't run the package __init__.
+# custom_components/ lives at the repository root (HACS requires this),
+# three levels up from this tests/ directory.
 _API_PATH = (
-    Path(__file__).resolve().parent.parent / "custom_components" / "parcel_server" / "api.py"
+    Path(__file__).resolve().parent.parent.parent.parent
+    / "custom_components"
+    / "parcel_server"
+    / "api.py"
 )
 _spec = importlib.util.spec_from_file_location("parcel_server_api", _API_PATH)
 _api = importlib.util.module_from_spec(_spec)

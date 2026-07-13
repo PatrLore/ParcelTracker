@@ -7,20 +7,14 @@ publishes (see `mqtt/README.md`). This one talks to the backend's REST API
 and can offer services the MQTT sensors can't: triggering a tracking
 refresh, archiving a parcel, and sending an ad-hoc notification.
 
+The integration's code lives at `/custom_components/parcel_server/` (the
+repository root), not under this directory - HACS requires
+`custom_components/<domain>/` to be at the repository root, so it can't
+live alongside this README/its tests/its dev tooling, which stay here.
+
 ## Installation
 
 ### Via HACS (recommended)
-
-This repository is a monorepo, so the integration doesn't live at the
-repository root the way HACS expects by default - `hacs.json` (at the repo
-root) sets `zip_release: true`, which tells HACS to download a packaged
-`parcel_server.zip` from this repo's GitHub Releases instead of looking for
-`custom_components/` directly. `.github/workflows/release-ha-integration.yml`
-builds that zip automatically whenever a tag matching `ha-v*` is pushed
-(e.g. `ha-v0.1.0`) - a release has to exist before HACS can install
-anything, since `zip_release` mode can't install from a plain branch.
-
-Once at least one `ha-v*` release exists:
 
 1. In Home Assistant, go to HACS → the three-dot menu (top right) →
    **Custom repositories**.
@@ -34,9 +28,16 @@ Once at least one `ha-v*` release exists:
 
 ### Manual
 
-1. Copy `custom_components/parcel_server/` into your Home Assistant
-   config directory, e.g. `<config>/custom_components/parcel_server/`.
+1. Copy `/custom_components/parcel_server/` (repo root, not this directory)
+   into your Home Assistant config directory, e.g.
+   `<config>/custom_components/parcel_server/`.
 2. Restart Home Assistant and continue from step 5 above.
+
+Alternatively, `.github/workflows/release-ha-integration.yml` can build a
+versioned `parcel_server.zip` (Actions tab → "Release Home Assistant
+integration" → Run workflow) if you'd rather download one release asset
+than copy a folder - not required for HACS, just a manual-install
+convenience.
 
 ## Sensors
 
@@ -84,7 +85,8 @@ network, no Home Assistant runtime required):
 cd integrations/home_assistant
 python3 -m venv .venv && .venv/bin/pip install -r requirements_test.txt
 .venv/bin/pytest
-.venv/bin/ruff check .   # from a venv with ruff too, e.g. ../../backend/.venv
+cd ../..   # back to the repo root - custom_components/ lives there
+backend/.venv/bin/ruff check custom_components integrations/home_assistant/tests
 ```
 
 The rest of the integration (`__init__.py`, `config_flow.py`,
