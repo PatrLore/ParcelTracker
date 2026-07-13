@@ -5,13 +5,22 @@ name: Release Home Assistant integration
 # zip_release mode (see hacs.json) downloads, since the integration lives in
 # a subdirectory of this monorepo rather than at the repository root.
 #
-# Cut a release by pushing a tag matching ha-v*, e.g.:
+# Cut a release either by pushing a tag matching ha-v*:
 #   git tag ha-v0.1.0 && git push origin ha-v0.1.0
+# or by running this workflow manually (Actions tab -> Release Home
+# Assistant integration -> Run workflow) with the desired tag name - the
+# release step creates that tag automatically if it doesn't exist yet.
 
 on:
   push:
     tags:
       - "ha-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to create and release, e.g. ha-v0.1.0"
+        required: true
+        default: "ha-v0.1.0"
 
 jobs:
   release:
@@ -28,7 +37,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Home Assistant integration ${{ github.ref_name }}"
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          name: "Home Assistant integration ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
           files: parcel_server.zip
           body: |
             Parcel Server Home Assistant integration, packaged for HACS.
