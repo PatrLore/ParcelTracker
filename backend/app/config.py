@@ -65,6 +65,9 @@ class SecuritySettings(BaseModel):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 14
     password_hash_scheme: Literal["argon2", "bcrypt"] = "argon2"
+    #: Fernet key encrypting mailbox passwords at rest. Generate a real one
+    #: with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    mail_encryption_key: str = "wwNjK7vVV7DOZFW6aYDQF2AJea9AIUFZKHSHY5QE7Lg="
 
 
 class RateLimitSettings(BaseModel):

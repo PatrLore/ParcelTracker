@@ -31,6 +31,9 @@ security:
   access_token_expire_minutes: 30
   refresh_token_expire_days: 14
   password_hash_scheme: "argon2"
+  # Generate with:
+  # python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  mail_encryption_key: "wwNjK7vVV7DOZFW6aYDQF2AJea9AIUFZKHSHY5QE7Lg="
 
 rate_limit:
   enabled: true

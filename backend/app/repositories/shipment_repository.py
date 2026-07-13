@@ -35,6 +35,14 @@ class ShipmentRepository(BaseRepository[Shipment]):
         )
         return list(self.db.scalars(stmt).unique().all())
 
+    def get_by_order_and_tracking_number(
+        self, order_id: int, tracking_number: str
+    ) -> Shipment | None:
+        stmt = select(Shipment).where(
+            Shipment.order_id == order_id, Shipment.tracking_number == tracking_number
+        )
+        return self.db.scalars(stmt).first()
+
     def _base_user_query(self, user_id: int):
         return (
             select(Shipment)

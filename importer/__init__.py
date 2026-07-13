@@ -1,6 +1,8 @@
-"""IMAP email import pipeline (Phase 2).
+"""IMAP email import pipeline.
 
-Will connect to configured mailboxes (IMAP IDLE + polling fallback), watch
-folders across multiple users/mailboxes, and hand raw messages to the
-``tracking``/merchant parser plugins for shipment detection.
+Connects to configured mailboxes (IMAP IDLE + polling fallback via
+``imap_client``), and hands raw messages to the pluggable merchant parsers in
+``importer.parsers`` for shipment/order detection. Contains no database or
+web-framework dependency - the backend's ``EmailIngestionService`` is what
+persists the results.
 """

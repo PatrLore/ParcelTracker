@@ -10,6 +10,16 @@ backend/logs/
 backend/config.yaml
 *.pyc
 
+# importer / tracking (Python, standalone packages)
+importer/**/__pycache__/
+importer/*.egg-info/
+importer/.pytest_cache/
+importer/.ruff_cache/
+tracking/**/__pycache__/
+tracking/*.egg-info/
+tracking/.pytest_cache/
+tracking/.ruff_cache/
+
 # Frontend (Node)
 frontend/node_modules/
 frontend/dist/

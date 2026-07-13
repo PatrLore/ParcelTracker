@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.mail_account import MailAccount
     from app.models.order import Order
 
 
@@ -24,3 +25,6 @@ class User(Base, TimestampMixin):
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     orders: Mapped[list[Order]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    mail_accounts: Mapped[list[MailAccount]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

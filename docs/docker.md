@@ -1,8 +1,15 @@
 # Docker
 
 `docker-compose.yml` at the repository root runs the full stack: backend,
-frontend, and a PostgreSQL database. Redis is included but disabled by
-default (it's optional per the project spec).
+import worker, frontend, and a PostgreSQL database. Redis is included but
+disabled by default (it's optional per the project spec).
+
+The backend image's build context is the repository root, not `backend/`,
+because the backend depends on the sibling `importer` and `tracking`
+packages (see `docs/architecture.md`). Both `backend` and `worker` use the
+same image (`backend/Dockerfile`) - `worker` just overrides the entrypoint
+to run `app.worker` (the mail-account polling loop, Phase 2) instead of
+Uvicorn.
 
 ## First run
 
@@ -26,9 +33,12 @@ docker compose up --build
 
 - Backend: `http://localhost:8000` (docs at `/docs`).
 - Frontend: `http://localhost:5173`.
-- The backend container runs `alembic upgrade head` on every start before
-  launching Uvicorn (see `backend/entrypoint.sh`), so migrations are always
-  applied automatically.
+- Both the `backend` and `worker` containers run `alembic upgrade head` on
+  every start (see `backend/entrypoint.sh` / `backend/worker-entrypoint.sh`),
+  so migrations are always applied automatically, whichever starts first.
+- Add a mail account via `POST /api/v1/mail-accounts` (or the frontend, once
+  that UI lands) and the `worker` container polls it automatically once its
+  `poll_interval_seconds` has elapsed.
 
 ## Why Postgres in Docker but SQLite by default outside it?
 
@@ -54,12 +64,13 @@ later phase) needs it.
 ## Rebuilding after dependency changes
 
 ```bash
-docker compose build --no-cache backend   # after editing backend/pyproject.toml
-docker compose build --no-cache frontend  # after editing frontend/package.json
+docker compose build --no-cache backend worker  # after editing backend/pyproject.toml,
+                                                 # importer/pyproject.toml, or tracking/pyproject.toml
+docker compose build --no-cache frontend        # after editing frontend/package.json
 ```
 
 ## Logs and data persistence
 
 - Postgres data: named volume `db-data`.
-- Backend logs: named volume `backend-logs`, mounted at `/app/logs` (see
-  `logging.directory` in `config.yaml`).
+- Backend/worker logs: named volume `backend-logs`, mounted at
+  `/app/backend/logs` (see `logging.directory` in `config.yaml`).

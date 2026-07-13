@@ -18,3 +18,13 @@ class OrderRepository(BaseRepository[Order]):
     def get_for_user(self, order_id: int, user_id: int) -> Order | None:
         stmt = select(Order).where(Order.id == order_id, Order.user_id == user_id)
         return self.db.scalars(stmt).first()
+
+    def get_by_merchant_and_number(
+        self, user_id: int, merchant: str, order_number: str
+    ) -> Order | None:
+        stmt = select(Order).where(
+            Order.user_id == user_id,
+            Order.merchant == merchant,
+            Order.order_number == order_number,
+        )
+        return self.db.scalars(stmt).first()

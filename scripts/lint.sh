@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
-# Run linters and formatters check for both backend and frontend.
+# Run linters and formatters check for backend, importer, tracking, and frontend.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
+ruff="$root/backend/.venv/bin/ruff"
 
 echo "== backend: ruff check =="
-"$root/backend/.venv/bin/ruff" check "$root/backend/app" "$root/backend/tests"
+"$ruff" check "$root/backend/app" "$root/backend/tests"
 
 echo "== backend: ruff format --check =="
-"$root/backend/.venv/bin/ruff" format --check "$root/backend/app" "$root/backend/tests"
+"$ruff" format --check "$root/backend/app" "$root/backend/tests"
+
+echo "== importer: ruff check =="
+"$ruff" check "$root/importer"
+
+echo "== tracking: ruff check =="
+"$ruff" check "$root/tracking"
 
 echo "== frontend: oxlint =="
 (cd "$root/frontend" && npm run lint)

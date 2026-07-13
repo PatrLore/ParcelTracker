@@ -11,6 +11,38 @@ cd backend
 
 Or from the repo root: `scripts/test.sh`, `scripts/lint.sh`.
 
+## importer and tracking
+
+These are separate, installable packages at the repo root (see
+`docs/architecture.md`) - they have no database or FastAPI dependency, so
+their own test suites run standalone:
+
+```bash
+cd importer && ../backend/.venv/bin/pytest
+cd tracking && ../backend/.venv/bin/pytest
+```
+
+`scripts/dev-backend.sh` installs both (`pip install -e ../tracking -e
+../importer`) into `backend/.venv` alongside the backend itself, so backend
+code can `import importer` / `import tracking` directly.
+
+### Adding a merchant parser
+
+Add a new module to `importer/parsers/` subclassing
+`importer.parsers._regex_parser.RegexMerchantParser` (or
+`importer.parsers.base.MerchantParser` directly for non-regex cases) -
+`importer.parsers.registry` discovers it automatically via `pkgutil`. No
+other file needs to change. See any existing parser (e.g.
+`importer/parsers/amazon.py`) for the shape, and
+`importer/tests/test_parsers.py` for how to test one with a crafted
+`RawEmail` fixture.
+
+### Adding a carrier
+
+Add one entry to `CARRIER_PATTERNS` (and `_DETECTION_ORDER`, for
+disambiguation against overlapping digit-length formats) in
+`tracking/carriers.py`.
+
 ### Adding a migration
 
 After changing a model under `app/models/`:

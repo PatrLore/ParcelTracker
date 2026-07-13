@@ -2,17 +2,32 @@
 
 ## Overview
 
-Parcel Server is split into two independently deployable applications:
+Parcel Server is split into independently deployable/installable units:
 
 - **`backend/`** — a FastAPI service exposing a versioned REST API
-  (`/api/v1`), backed by SQLAlchemy models and Alembic migrations.
+  (`/api/v1`), backed by SQLAlchemy models and Alembic migrations. Also runs
+  as a separate **import worker** process (`app/worker.py`) that polls mail
+  accounts (Phase 2).
 - **`frontend/`** — a React + TypeScript single-page app (Vite, MUI) that
   consumes the REST API.
+- **`importer/`** — a standalone, database-free Python package: an IMAP
+  client (`imap_client.py`) and pluggable merchant-confirmation parsers
+  (`parsers/`). Implemented Phase 2.
+- **`tracking/`** — a standalone, database-free Python package: the
+  `TrackingProvider` interface (Phase 3, not yet implemented) and carrier
+  tracking-number detection (`carriers.py`, implemented, used by `importer`
+  since Phase 2).
+- **`notification/`, `mqtt/`, `integrations/`** — future-phase packages
+  (Phase 4+), currently placeholders.
 
-Everything else at the repository root (`importer/`, `tracking/`,
-`notification/`, `mqtt/`, `integrations/`) is a future-phase package that
-will plug into the backend through an explicit interface, never by reaching
-into its internals.
+`importer` and `tracking` have zero dependency on `backend`, FastAPI, or
+SQLAlchemy - they're plain Python libraries installed into the backend's
+virtualenv (`pip install -e ../importer -e ../tracking`, see
+`scripts/dev-backend.sh` and `backend/Dockerfile`). The backend is the only
+thing that depends on them, through
+`app/services/email_ingestion_service.py` - never the other way around, and
+never by reaching into their internals beyond the documented interface each
+exposes.
 
 ## Backend layering
 
@@ -55,18 +70,62 @@ business rules testable without spinning up the HTTP layer (see
 `backend/tests/unit/`) and keeps API tests focused on request/response
 behavior (see `backend/tests/api/`).
 
-## Data model (Phase 1)
+## Data model
 
-- **User** — an account that owns orders.
+- **User** — an account that owns orders and mail accounts.
 - **Order** — a purchase from a merchant; belongs to a user; has zero or
   more shipments.
 - **Shipment** — a parcel with a tracking number, optionally linked to an
   order and a carrier; has a tracking-event history.
 - **TrackingEvent** — one status update in a shipment's history (status,
   description, location, timestamp).
-- **Carrier** — reference data for a shipping carrier (DHL, UPS, ...).
-- **Email** — a raw ingested shipping-confirmation email (Phase 2); can be
-  linked back to the order it was matched against.
+- **Carrier** — reference data for a shipping carrier (DHL, UPS, ...);
+  created on demand when a parser first detects it.
+- **Email** — a raw ingested shipping-confirmation email; linked back to
+  the order it was matched against, or `order_id = NULL` if no parser
+  recognized the sender.
+- **MailAccount** (Phase 2) — an IMAP mailbox a user connected for import.
+  The password is never stored in plain text - see
+  [Mailbox credential encryption](#mailbox-credential-encryption) below.
+
+## Email import pipeline (Phase 2)
+
+```
+app/worker.py (separate process/container)
+  -> for each due MailAccount:
+       app/services/email_ingestion_service.py
+         -> importer.imap_client.ImapMailbox.fetch_since(last_seen_uid)
+         -> importer.parsers.detect(raw_email)   # sender/regex-based
+         -> persists Email, and (if matched) Order + Shipment rows
+```
+
+- `importer.imap_client.ImapMailbox` wraps `imapclient`, exposing
+  `fetch_since(uid)` (polling) and `idle_check(...)` (IMAP IDLE). The worker
+  currently only polls, on a per-account interval
+  (`MailAccount.poll_interval_seconds`); IDLE is available in the client but
+  not yet wired into a runner - a future phase can add one without changing
+  the polling path.
+- `importer.parsers.registry` auto-discovers every
+  `MerchantParser` subclass in `importer/parsers/` via `pkgutil` - adding a
+  merchant is one new file, no registration step.
+  `importer.parsers._regex_parser.RegexMerchantParser` covers the common
+  case (match by sender domain, extract via regex); a parser with unusual
+  formatting can subclass `MerchantParser` directly instead.
+- `EmailIngestionService` is the only place this data becomes database rows:
+  it's injected an `ImapMailbox`-shaped factory (default: the real one),
+  so tests exercise the full fetch -> parse -> persist path against a fake
+  in-memory mailbox with no network access
+  (`backend/tests/unit/test_email_ingestion_service.py`).
+- Every `Email.message_id` is unique - re-fetching an already-seen message
+  (e.g. a mailbox that doesn't advance UIDs monotonically) is a no-op.
+
+### Mailbox credential encryption
+
+`MailAccount.encrypted_password` is a Fernet token
+(`app/core/crypto.py`), keyed by `security.mail_encryption_key` in
+`config.yaml` - never the user's plaintext IMAP password. The API
+(`MailAccountRead`) never includes the password or its encrypted form in
+any response.
 
 ## Database portability
 
@@ -78,17 +137,11 @@ driver-specific SQL.
 
 ## Forward-looking interfaces
 
-Two abstractions are deliberately introduced ahead of their implementation,
-because the top-level project structure depends on them not being an
-afterthought:
-
-- **`tracking.TrackingProvider`** (Phase 3) — `register()` / `update()` /
-  `remove()`. Concrete providers (17TRACK, AfterShip, TrackingMore, Ship24,
-  carrier APIs) implement this interface; the backend only ever depends on
-  it, so the active provider is a configuration choice.
-- Merchant email parsers and carrier tracking-number detectors (Phase 2/3)
-  will be plugin-registered, so adding support for a new merchant or
-  carrier never requires touching the core import/tracking loop.
+**`tracking.TrackingProvider`** (Phase 3, interface defined, no
+implementation yet) — `register()` / `update()` / `remove()`. Concrete
+providers (17TRACK, AfterShip, TrackingMore, Ship24, carrier APIs) will
+implement this interface; the backend will only ever depend on it, so the
+active provider is a configuration choice, not a code change.
 
 ## Authentication
 

@@ -18,11 +18,13 @@ for day-to-day development workflow.
 ```bash
 cd backend
 python3.13 -m venv .venv
-.venv/bin/pip install -e ".[dev]"
+.venv/bin/pip install -e "../tracking[dev]" -e "../importer[dev]" -e ".[dev]"
 cp config.example.yaml config.yaml   # review/edit before continuing
 .venv/bin/alembic upgrade head
 .venv/bin/uvicorn app.main:app --reload
 ```
+
+Or simply `scripts/dev-backend.sh`, which does all of the above.
 
 The API is now at `http://localhost:8000`, with interactive docs at
 `/docs` (Swagger UI) and `/redoc` (ReDoc).
@@ -47,6 +49,20 @@ The dev server proxies `/api` to `http://localhost:8000` (see
 `frontend/vite.config.ts`), so both must be running for the login page to
 work.
 
+### Import worker (Phase 2, optional)
+
+To have shipping-confirmation emails picked up automatically, connect a
+mailbox via `POST /api/v1/mail-accounts`, then run the worker:
+
+```bash
+scripts/dev-worker.sh
+```
+
+It polls every active mail account (respecting each account's own
+`poll_interval_seconds`) and turns recognized confirmations into orders and
+shipments. Without it running, mail accounts can still be synced manually via
+`POST /api/v1/mail-accounts/{id}/sync`.
+
 ## Configuration
 
 All runtime configuration lives in `backend/config.yaml`, copied from
@@ -60,5 +76,8 @@ machine:
 
 - `security.jwt_secret_key` - generate with
   `python -c "import secrets; print(secrets.token_urlsafe(64))"`.
+- `security.mail_encryption_key` - encrypts mailbox passwords at rest;
+  generate with
+  `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
 - `database.*` - if not using SQLite.
 - `server.cors_origins` - the origin(s) your frontend is served from.

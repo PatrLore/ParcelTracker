@@ -1,14 +1,34 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     image: parcel-server-backend
     restart: unless-stopped
     volumes:
-      - ./backend/config.yaml:/app/config.yaml:ro
-      - backend-logs:/app/logs
+      - ./backend/config.yaml:/app/backend/config.yaml:ro
+      - backend-logs:/app/backend/logs
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - parcel-server
+
+  # Polls every active mail account for shipping-confirmation emails
+  # (Phase 2). Runs separately from the API server so a slow or unreachable
+  # mailbox never blocks API requests.
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: parcel-server-backend
+    entrypoint: ["/worker-entrypoint.sh"]
+    restart: unless-stopped
+    volumes:
+      - ./backend/config.yaml:/app/backend/config.yaml:ro
+      - backend-logs:/app/backend/logs
     depends_on:
       db:
         condition: service_healthy
