@@ -30,7 +30,8 @@ Or simply `scripts/dev-backend.sh`, which does all of the above.
 The API is now at `http://localhost:8000`, with interactive docs at
 `/docs` (Swagger UI) and `/redoc` (ReDoc).
 
-Create your first user:
+Create your first user - either via the frontend's `/register` page once
+it's running (see below), or directly against the API:
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/users \
