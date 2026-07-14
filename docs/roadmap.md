@@ -6,7 +6,8 @@
 - SQLAlchemy models + Alembic migrations (User, Order, Shipment,
   TrackingEvent, Carrier, Email).
 - FastAPI REST API with JWT auth, rate limiting, security headers.
-- React + TypeScript + MUI frontend: login, dashboard, dark/light mode.
+- React + TypeScript + MUI frontend: registration, login, dashboard,
+  dark/light mode.
 - Unit + API test suites.
 
 ## Phase 2 - Email import (done)
