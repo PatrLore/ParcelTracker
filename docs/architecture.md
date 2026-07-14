@@ -38,10 +38,18 @@ Parcel Server is split into independently deployable/installable units:
   `importer`/`tracking`/`notification`/`mqtt`, it isn't pip-installed into
   the backend's virtualenv - it's installed into Home Assistant itself,
   via HACS or by copying the folder into Home Assistant's config directory.
+- **`dist/parcel-server-card.js`** (repository root) — a Lovelace
+  dashboard card, HACS's separate "plugin" category from the
+  `custom_components/parcel_server/` "integration" category (same repo,
+  two independent HACS entries). A dependency-free vanilla Web Component
+  reading the integration's five sensors - no `lit`/build step. At the
+  repository root (inside `dist/`) rather than under `integrations/` for
+  the same HACS root-level file-discovery reason as `custom_components/`.
 - **`integrations/`** — deeper platform integrations beyond generic
   notifications: `home_assistant/` (Phase 4+, done) holds the Home
-  Assistant integration's docs/tests (the integration's own code is at
-  `custom_components/parcel_server/`, see above). Additional auth
+  Assistant integration's and dashboard card's docs/tests (their code is
+  at `custom_components/parcel_server/` and `dist/`, see above). Additional
+  auth
   providers (OAuth, LDAP) remain a placeholder.
 
 `importer`, `tracking`, `notification`, and `mqtt` all have zero dependency

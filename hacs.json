@@ -1,5 +1,6 @@
 {
   "name": "Parcel Server",
   "render_readme": false,
-  "homeassistant": "2024.2.0"
+  "homeassistant": "2024.2.0",
+  "filename": "parcel-server-card.js"
 }
