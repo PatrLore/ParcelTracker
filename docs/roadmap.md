@@ -77,6 +77,14 @@
   `api.py`, has an automated test suite - the config flow/coordinator/
   sensor platform require the `homeassistant` package itself to exercise,
   which isn't installed in this repo).
+- `dist/parcel-server-card.js` - a matching Lovelace dashboard card (done):
+  a dependency-free vanilla Web Component reading the integration's five
+  sensors, distributed as a separate HACS *plugin*-category entry from the
+  integration above (same repo, two independent HACS "custom repository"
+  entries - see `integrations/home_assistant/README.md`). Not yet done:
+  the same live-validation gap as the integration - only checked with
+  Node's `--check` (syntax), never rendered inside an actual Home
+  Assistant dashboard.
 - Additional auth providers (OAuth, LDAP, Home Assistant auth) - not done.
 - Not yet done: the four HTTP-based channels' request/response handling has
   not been validated against the live APIs (see each channel module's

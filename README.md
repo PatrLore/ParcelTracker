@@ -29,7 +29,9 @@ statistics dashboard, and a dedicated Home Assistant custom integration
   custom integration (`custom_components/parcel_server/`, installable via
   HACS as a custom repository - docs at `integrations/home_assistant/`)
   with a config flow, five native sensors, and three services (refresh
-  tracking, archive parcel, send notification).
+  tracking, archive parcel, send notification), and a matching Lovelace
+  dashboard card (`dist/parcel-server-card.js`, installable via HACS as a
+  separate Plugin-category entry).
 - **Email import:** IMAP polling (Gmail, Outlook/Exchange, GMX, WEB.DE,
   Yahoo, ...) with auto-discovered merchant parsers (Amazon, eBay, Otto,
   MediaMarkt, Saturn, IKEA, Temu, Kaufland, AliExpress, Decathlon, Zalando,
@@ -97,9 +99,12 @@ mqtt/            MQTT publisher + Home Assistant Discovery (Phase 4) -
 custom_components/  Home Assistant custom integration (parcel_server/,
                  done) - lives at the repo root because HACS requires it
                  there; its docs/tests live at integrations/home_assistant/
-integrations/    Home Assistant integration docs/tests (home_assistant/,
-                 see custom_components/ above) plus additional auth
-                 providers (Phase 4+, not yet implemented)
+dist/            Lovelace dashboard card (parcel-server-card.js, done) -
+                 also at the repo root, HACS's "plugin" category has the
+                 same root-level requirement as custom_components/ above
+integrations/    Home Assistant integration + dashboard card docs/tests
+                 (home_assistant/, see custom_components/ and dist/ above)
+                 plus additional auth providers (Phase 4+, not yet implemented)
 docs/            Architecture, installation, Docker, development, roadmap
 tests/           (backend/importer/tracking/notification/mqtt/
                  integrations-home_assistant tests live alongside their own
