@@ -79,9 +79,10 @@
   which isn't installed in this repo).
 - `dist/parcel-server-card.js` - a matching Lovelace dashboard card (done):
   a dependency-free vanilla Web Component reading the integration's five
-  sensors, distributed as a separate HACS *plugin*-category entry from the
-  integration above (same repo, two independent HACS "custom repository"
-  entries - see `integrations/home_assistant/README.md`). Not yet done:
+  sensors, distributed as a separate HACS "Dashboard"-type entry (formerly
+  called "Plugin") from the integration above (same repo, two independent
+  HACS "custom repository" entries - see
+  `integrations/home_assistant/README.md`). Not yet done:
   the same live-validation gap as the integration - only checked with
   Node's `--check` (syntax), never rendered inside an actual Home
   Assistant dashboard.

@@ -39,8 +39,9 @@ Parcel Server is split into independently deployable/installable units:
   the backend's virtualenv - it's installed into Home Assistant itself,
   via HACS or by copying the folder into Home Assistant's config directory.
 - **`dist/parcel-server-card.js`** (repository root) — a Lovelace
-  dashboard card, HACS's separate "plugin" category from the
-  `custom_components/parcel_server/` "integration" category (same repo,
+  dashboard card, HACS's separate "Dashboard" repository type (formerly
+  named "Plugin") from the `custom_components/parcel_server/`
+  "Integration" type (same repo,
   two independent HACS entries). A dependency-free vanilla Web Component
   reading the integration's five sensors - no `lit`/build step. At the
   repository root (inside `dist/`) rather than under `integrations/` for

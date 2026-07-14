@@ -97,8 +97,9 @@ comment in `__init__.py` if you run more than one account.
 ## Dashboard card (Lovelace)
 
 `/dist/parcel-server-card.js` (repository root) is a second, independent
-HACS resource - a **Plugin** (Lovelace frontend card), not part of the
-`custom_components/parcel_server/` integration. HACS's plugin-category
+HACS resource - a **Dashboard** repository (HACS's current name for what
+used to be called "Plugin"; a Lovelace frontend card), not part of the
+`custom_components/parcel_server/` integration. HACS's dashboard-type
 file discovery scans a repository's release assets, then `dist/`, then the
 repo root for a `.js` file matching `hacs.json`'s `filename` field, so it
 has to live in one of those locations rather than nested under
@@ -108,9 +109,9 @@ has to live in one of those locations rather than nested under
 ### Installing the card
 
 1. HACS → ⋮ → **Custom repositories** → add
-   `https://github.com/PatrLore/ParcelTracker`, type **Plugin** this time
+   `https://github.com/PatrLore/ParcelTracker`, type **Dashboard** this time
    (a second, separate custom-repository entry from the Integration one
-   above - HACS treats the two categories independently even for the same
+   above - HACS treats the two types independently even for the same
    repo URL).
 2. Install "Parcel Server Card" from HACS. HACS registers the Lovelace
    resource automatically; if it doesn't show up, add it manually under
