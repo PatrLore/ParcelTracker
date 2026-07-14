@@ -1,5 +1,6 @@
 /**
- * Parcel Server Lovelace card - a HACS "plugin" resource distributed
+ * Parcel Server Lovelace card - a HACS "Dashboard"-type resource (HACS's
+ * current name for what used to be called "Plugin") distributed
  * separately from the custom_components/parcel_server/ integration (see
  * integrations/home_assistant/README.md). Deliberately dependency-free
  * (no lit/build step) - a single native Web Component that reads the
