@@ -24,6 +24,9 @@
 - Orders and shipments created/updated from parsed confirmations
   (`EmailIngestionService`), via a standalone worker process/container.
 - Mailbox passwords encrypted at rest (Fernet).
+- Frontend mailbox management (`/mailboxes`, done): add/edit/remove IMAP
+  mailboxes and trigger a manual sync, without needing the raw API - the
+  CRUD endpoints existed since Phase 2 but had no UI until now.
 - Not yet done: real-world tuning of the parser regexes against actual
   provider emails (current patterns are best-effort, based on documented/
   typical formats - see `docs/development.md` on adding/refining a parser),

@@ -4,6 +4,7 @@ import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MailAccountsPage } from "./pages/MailAccountsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { StatisticsPage } from "./pages/StatisticsPage";
 
@@ -28,6 +29,16 @@ export function App() {
           <ProtectedRoute>
             <AppLayout>
               <StatisticsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mailboxes"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <MailAccountsPage />
             </AppLayout>
           </ProtectedRoute>
         }

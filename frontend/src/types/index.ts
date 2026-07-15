@@ -69,3 +69,38 @@ export interface StatisticsSummary {
   success_rate: number | null;
   total_shipments: number;
 }
+
+export interface MailAccount {
+  id: number;
+  user_id: number;
+  email_address: string;
+  imap_host: string;
+  imap_port: number;
+  imap_username: string;
+  use_ssl: boolean;
+  folder: string;
+  use_idle: boolean;
+  poll_interval_seconds: number;
+  is_active: boolean;
+  last_seen_uid: number;
+  last_synced_at: string | null;
+  created_at: string;
+}
+
+export interface MailAccountInput {
+  email_address: string;
+  imap_host: string;
+  imap_port: number;
+  imap_username: string;
+  password: string;
+  use_ssl: boolean;
+  folder: string;
+  use_idle: boolean;
+  poll_interval_seconds: number;
+}
+
+export interface MailAccountSyncResult {
+  fetched_emails: number;
+  matched_orders: number;
+  created_shipments: number;
+}
