@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import httpx
 import pytest
 
+from app.models.enums import MailAccountAuthType
 from app.schemas.mail_account import MailAccountCreate, MailAccountUpdate
 from app.schemas.user import UserCreate
 from app.services.exceptions import NotFoundError
@@ -88,3 +90,82 @@ def test_delete_account(db_session, user):
 
     with pytest.raises(NotFoundError):
         service.get_account(account.id, user.id)
+
+
+def test_create_oauth_microsoft_account_has_no_password(db_session, user):
+    service = MailAccountService(db_session)
+
+    account = service.create_oauth_microsoft_account(
+        user_id=user.id,
+        email_address="owner@hotmail.com",
+        refresh_token="rt-1",
+        folder="INBOX",
+        use_idle=False,
+        poll_interval_seconds=300,
+    )
+
+    assert account.auth_type == MailAccountAuthType.OAUTH_MICROSOFT
+    assert account.encrypted_password is None
+    assert account.imap_host == "outlook.office365.com"
+    assert account.encrypted_oauth_refresh_token is not None
+
+
+def test_reconnect_oauth_microsoft_account_replaces_refresh_token(db_session, user):
+    service = MailAccountService(db_session)
+    account = service.create_oauth_microsoft_account(
+        user_id=user.id,
+        email_address="owner@hotmail.com",
+        refresh_token="rt-1",
+        folder="INBOX",
+        use_idle=False,
+        poll_interval_seconds=300,
+    )
+    old_encrypted = account.encrypted_oauth_refresh_token
+
+    updated = service.reconnect_oauth_microsoft_account(account.id, user.id, "rt-2")
+
+    assert updated.encrypted_oauth_refresh_token != old_encrypted
+
+
+def test_ensure_fresh_access_token_returns_access_token_and_rotates(db_session, user):
+    service = MailAccountService(db_session)
+    account = service.create_oauth_microsoft_account(
+        user_id=user.id,
+        email_address="owner@hotmail.com",
+        refresh_token="rt-1",
+        folder="INBOX",
+        use_idle=False,
+        poll_interval_seconds=300,
+    )
+    old_encrypted = account.encrypted_oauth_refresh_token
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200, json={"access_token": "at-1", "refresh_token": "rt-2", "expires_in": 3600}
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    access_token = service.ensure_fresh_access_token(account, client)
+
+    assert access_token == "at-1"
+    assert account.encrypted_oauth_refresh_token != old_encrypted
+
+
+def test_ensure_fresh_access_token_raises_connection_error_when_revoked(db_session, user):
+    service = MailAccountService(db_session)
+    account = service.create_oauth_microsoft_account(
+        user_id=user.id,
+        email_address="owner@hotmail.com",
+        refresh_token="rt-1",
+        folder="INBOX",
+        use_idle=False,
+        poll_interval_seconds=300,
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, json={"error": "invalid_grant"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+
+    with pytest.raises(ConnectionError):
+        service.ensure_fresh_access_token(account, client)

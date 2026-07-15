@@ -70,6 +70,8 @@ export interface StatisticsSummary {
   total_shipments: number;
 }
 
+export type MailAccountAuthType = "password" | "oauth_microsoft";
+
 export interface MailAccount {
   id: number;
   user_id: number;
@@ -77,6 +79,7 @@ export interface MailAccount {
   imap_host: string;
   imap_port: number;
   imap_username: string;
+  auth_type: MailAccountAuthType;
   use_ssl: boolean;
   folder: string;
   use_idle: boolean;
@@ -103,6 +106,29 @@ export interface MailAccountSyncResult {
   fetched_emails: number;
   matched_orders: number;
   created_shipments: number;
+}
+
+/** "Sign in with Microsoft" device-code flow - see
+ * backend `app.services.oauth_microsoft` for why this shape (no redirect
+ * URL, user enters a short code on microsoft.com/devicelogin). */
+export interface MicrosoftOAuthFlowStart {
+  flow_id: string;
+  user_code: string;
+  verification_uri: string;
+  expires_in: number;
+  interval: number;
+}
+
+export interface MicrosoftOAuthFlowStatus {
+  status: "pending" | "complete";
+}
+
+export interface MicrosoftOAuthFinalizeInput {
+  flow_id: string;
+  email_address: string;
+  folder: string;
+  use_idle: boolean;
+  poll_interval_seconds: number;
 }
 
 export interface VersionInfo {

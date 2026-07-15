@@ -23,3 +23,13 @@ class ShipmentStatus(enum.StrEnum):
     DELAYED = "delayed"
     EXCEPTION = "exception"
     RETURNED = "returned"
+
+
+class MailAccountAuthType(enum.StrEnum):
+    """How a :class:`~app.models.mail_account.MailAccount` authenticates to
+    its IMAP server. ``OAUTH_MICROSOFT`` exists because Microsoft retired
+    plain-password Basic Authentication for Outlook.com/Hotmail/Live
+    accounts - see ``docs/mailboxes.md``."""
+
+    PASSWORD = "password"
+    OAUTH_MICROSOFT = "oauth_microsoft"

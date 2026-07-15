@@ -94,3 +94,12 @@ mqtt:
   username: ""
   password: ""
   publish_interval_seconds: 60
+
+# "Sign in with Microsoft" for Outlook.com/Hotmail/Live mailboxes, whose
+# plain-password IMAP login Microsoft has retired - see docs/mailboxes.md
+# for the Azure/Entra ID app registration steps this needs.
+microsoft_oauth:
+  enabled: false
+  client_id: ""
+  # "consumers" = personal Microsoft accounts only (Hotmail/Outlook/Live).
+  tenant: "consumers"

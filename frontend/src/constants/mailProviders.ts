@@ -9,6 +9,10 @@ export interface MailProviderPreset {
    * password once two-factor authentication is enabled. */
   appPasswordHint?: string;
   appPasswordUrl?: string;
+  /** "oauth_microsoft" providers have retired plain-password IMAP login -
+   * the mailbox form shows a "Sign in with Microsoft" flow instead of a
+   * password field. See docs/mailboxes.md. */
+  authType?: "password" | "oauth_microsoft";
 }
 
 export const CUSTOM_PROVIDER_ID = "custom";
@@ -30,10 +34,10 @@ export const MAIL_PROVIDER_PRESETS: MailProviderPreset[] = [
     imapHost: "outlook.office365.com",
     imapPort: 993,
     useSsl: true,
+    authType: "oauth_microsoft",
     appPasswordHint:
-      "Microsoft accounts with two-factor authentication need an App Password; some " +
-      "personal accounts require enabling IMAP access first in Outlook settings.",
-    appPasswordUrl: "https://account.live.com/proofs/AppPassword",
+      "Microsoft retired plain-password IMAP access for these accounts - sign in with your " +
+      "Microsoft account instead, below.",
   },
   {
     id: "yahoo",

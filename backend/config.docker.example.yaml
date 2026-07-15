@@ -90,3 +90,10 @@ mqtt:
   username: ""
   password: ""
   publish_interval_seconds: 60
+
+# "Sign in with Microsoft" for Outlook.com/Hotmail/Live mailboxes - see
+# docs/mailboxes.md for the Azure/Entra ID app registration steps.
+microsoft_oauth:
+  enabled: false
+  client_id: ""
+  tenant: "consumers"

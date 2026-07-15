@@ -12,6 +12,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Protocol
 
+import httpx
 from importer.emails import RawEmail
 from importer.imap_client import ImapMailbox, MailboxConfig
 from importer.parsers import ParsedOrder, detect
@@ -20,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.models.carrier import Carrier
 from app.models.email import Email
-from app.models.enums import OrderStatus, ShipmentStatus
+from app.models.enums import MailAccountAuthType, OrderStatus, ShipmentStatus
 from app.models.mail_account import MailAccount
 from app.models.order import Order
 from app.models.shipment import Shipment
@@ -52,10 +53,12 @@ class EmailIngestionService:
         db: Session,
         mailbox_factory: MailboxFactory = ImapMailbox,
         dispatcher: NotificationDispatcher | None = None,
+        http_client_factory: Callable[[], httpx.Client] = lambda: httpx.Client(timeout=10.0),
     ) -> None:
         self.db = db
         self._mailbox_factory = mailbox_factory
         self._dispatcher = dispatcher
+        self._http_client_factory = http_client_factory
         self.mail_accounts = MailAccountRepository(db)
         self.emails = EmailRepository(db)
         self.orders = OrderRepository(db)
@@ -63,7 +66,13 @@ class EmailIngestionService:
         self.carriers = CarrierRepository(db)
 
     def sync_account(self, account: MailAccount) -> MailAccountSyncResult:
-        config = MailAccountService.build_mailbox_config(account)
+        access_token = None
+        if account.auth_type == MailAccountAuthType.OAUTH_MICROSOFT:
+            with self._http_client_factory() as client:
+                access_token = MailAccountService(self.db).ensure_fresh_access_token(
+                    account, client
+                )
+        config = MailAccountService.build_mailbox_config(account, access_token=access_token)
         mailbox = self._mailbox_factory(config)
 
         with mailbox.session():
