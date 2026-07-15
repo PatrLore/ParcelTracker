@@ -31,7 +31,11 @@
 - Mailbox passwords encrypted at rest (Fernet).
 - Frontend mailbox management (`/mailboxes`, done): add/edit/remove IMAP
   mailboxes and trigger a manual sync, without needing the raw API - the
-  CRUD endpoints existed since Phase 2 but had no UI until now.
+  CRUD endpoints existed since Phase 2 but had no UI until now. An "Email
+  provider" preset picker (`frontend/src/constants/mailProviders.ts`) fills
+  in the IMAP host/port/SSL for Gmail, Outlook/Hotmail/Live, Yahoo,
+  iCloud, GMX, and WEB.DE, plus a per-provider app-password hint - editable
+  afterward, and "Custom / other" for anything else.
 - Not yet done: real-world tuning of the parser regexes against actual
   provider emails (current patterns are best-effort, based on documented/
   typical formats - see `docs/development.md` on adding/refining a parser),

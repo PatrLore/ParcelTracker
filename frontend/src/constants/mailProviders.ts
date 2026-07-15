@@ -1,0 +1,72 @@
+export interface MailProviderPreset {
+  id: string;
+  label: string;
+  imapHost: string;
+  imapPort: number;
+  useSsl: boolean;
+  /** Shown as a hint when selected - most major providers require an
+   * app-specific password for IMAP rather than the normal account
+   * password once two-factor authentication is enabled. */
+  appPasswordHint?: string;
+  appPasswordUrl?: string;
+}
+
+export const CUSTOM_PROVIDER_ID = "custom";
+
+export const MAIL_PROVIDER_PRESETS: MailProviderPreset[] = [
+  { id: CUSTOM_PROVIDER_ID, label: "Custom / other", imapHost: "", imapPort: 993, useSsl: true },
+  {
+    id: "gmail",
+    label: "Gmail (Google Mail)",
+    imapHost: "imap.gmail.com",
+    imapPort: 993,
+    useSsl: true,
+    appPasswordHint: "Requires a Google App Password, not your normal login password.",
+    appPasswordUrl: "https://myaccount.google.com/apppasswords",
+  },
+  {
+    id: "outlook",
+    label: "Outlook / Hotmail / Live",
+    imapHost: "outlook.office365.com",
+    imapPort: 993,
+    useSsl: true,
+    appPasswordHint:
+      "Microsoft accounts with two-factor authentication need an App Password; some " +
+      "personal accounts require enabling IMAP access first in Outlook settings.",
+    appPasswordUrl: "https://account.live.com/proofs/AppPassword",
+  },
+  {
+    id: "yahoo",
+    label: "Yahoo Mail",
+    imapHost: "imap.mail.yahoo.com",
+    imapPort: 993,
+    useSsl: true,
+    appPasswordHint: "Requires a Yahoo App Password, generated in Yahoo Account Security.",
+    appPasswordUrl: "https://login.yahoo.com/myaccount/security",
+  },
+  {
+    id: "icloud",
+    label: "iCloud Mail",
+    imapHost: "imap.mail.me.com",
+    imapPort: 993,
+    useSsl: true,
+    appPasswordHint: "Requires an app-specific password from your Apple ID account page.",
+    appPasswordUrl: "https://appleid.apple.com/account/manage",
+  },
+  {
+    id: "gmx",
+    label: "GMX",
+    imapHost: "imap.gmx.net",
+    imapPort: 993,
+    useSsl: true,
+    appPasswordHint: "Make sure IMAP access is enabled under GMX Mail settings first.",
+  },
+  {
+    id: "web.de",
+    label: "WEB.DE",
+    imapHost: "imap.web.de",
+    imapPort: 993,
+    useSsl: true,
+    appPasswordHint: "Make sure IMAP access is enabled under WEB.DE Mail settings first.",
+  },
+];

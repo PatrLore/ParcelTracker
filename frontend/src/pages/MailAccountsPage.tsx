@@ -13,9 +13,15 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControl,
   FormControlLabel,
   IconButton,
+  InputLabel,
+  Link,
+  MenuItem,
   Paper,
+  Select,
+  type SelectChangeEvent,
   Snackbar,
   Stack,
   Switch,
@@ -32,6 +38,7 @@ import {
 import { type FormEvent, useEffect, useState } from "react";
 
 import { apiClient } from "../api/client";
+import { CUSTOM_PROVIDER_ID, MAIL_PROVIDER_PRESETS } from "../constants/mailProviders";
 import type { MailAccount, MailAccountInput, MailAccountSyncResult } from "../types";
 
 const EMPTY_FORM: MailAccountInput = {
@@ -54,6 +61,7 @@ export function MailAccountsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<MailAccountInput>(EMPTY_FORM);
+  const [providerId, setProviderId] = useState<string>(CUSTOM_PROVIDER_ID);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -72,6 +80,7 @@ export function MailAccountsPage() {
   function openAddDialog() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setProviderId(CUSTOM_PROVIDER_ID);
     setFormError(null);
     setDialogOpen(true);
   }
@@ -89,9 +98,26 @@ export function MailAccountsPage() {
       use_idle: account.use_idle,
       poll_interval_seconds: account.poll_interval_seconds,
     });
+    setProviderId(CUSTOM_PROVIDER_ID);
     setFormError(null);
     setDialogOpen(true);
   }
+
+  function handleProviderChange(event: SelectChangeEvent) {
+    const id = event.target.value;
+    setProviderId(id);
+    const preset = MAIL_PROVIDER_PRESETS.find((p) => p.id === id);
+    if (preset && preset.id !== CUSTOM_PROVIDER_ID) {
+      setForm({
+        ...form,
+        imap_host: preset.imapHost,
+        imap_port: preset.imapPort,
+        use_ssl: preset.useSsl,
+      });
+    }
+  }
+
+  const selectedPreset = MAIL_PROVIDER_PRESETS.find((p) => p.id === providerId);
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
@@ -263,6 +289,35 @@ export function MailAccountsPage() {
             <Stack spacing={2} sx={{ mt: 1 }}>
               {formError && <Alert severity="error">{formError}</Alert>}
 
+              {editingId === null && (
+                <FormControl fullWidth>
+                  <InputLabel id="mail-provider-label">Email provider</InputLabel>
+                  <Select
+                    labelId="mail-provider-label"
+                    label="Email provider"
+                    value={providerId}
+                    onChange={handleProviderChange}
+                  >
+                    {MAIL_PROVIDER_PRESETS.map((preset) => (
+                      <MenuItem key={preset.id} value={preset.id}>
+                        {preset.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+
+              {selectedPreset?.appPasswordHint && (
+                <Alert severity="info">
+                  {selectedPreset.appPasswordHint}{" "}
+                  {selectedPreset.appPasswordUrl && (
+                    <Link href={selectedPreset.appPasswordUrl} target="_blank" rel="noopener noreferrer">
+                      Set one up here
+                    </Link>
+                  )}
+                </Alert>
+              )}
+
               <TextField
                 label="Email address"
                 type="email"
@@ -307,7 +362,8 @@ export function MailAccountsPage() {
                 fullWidth
                 helperText={
                   editingId === null
-                    ? "Gmail/Outlook usually require an app password, not your normal login password"
+                    ? "Many providers require an app password rather than your normal login " +
+                      "password - see the hint above if you picked one"
                     : "Leave blank to keep the current password"
                 }
               />
