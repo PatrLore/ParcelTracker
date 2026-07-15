@@ -3,10 +3,17 @@
 # `mqtt` packages.
 FROM python:3.13-slim AS base
 
+# Set via `docker compose build --build-arg` / the GIT_COMMIT env var (see
+# docker-compose.yml) so the running container can report which commit
+# it was built from - see app/core/version.py. Defaults to "unknown" if
+# not passed, which the update-check endpoint treats as "can't tell".
+ARG GIT_COMMIT=unknown
+
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PARCEL_SERVER_CONFIG=/app/backend/config.yaml
+    PARCEL_SERVER_CONFIG=/app/backend/config.yaml \
+    PARCEL_SERVER_COMMIT=$GIT_COMMIT
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc libpq-dev \

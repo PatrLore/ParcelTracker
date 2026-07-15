@@ -21,6 +21,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../contexts/AuthContext";
 import { useThemeMode } from "../contexts/ThemeModeContext";
+import { UpdateCheckButton } from "./UpdateCheckButton";
 
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: <DashboardIcon fontSize="small" /> },
@@ -73,6 +74,7 @@ export function AppLayout({ children }: PropsWithChildren) {
               {user.email}
             </Typography>
           )}
+          <UpdateCheckButton />
           <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
             <IconButton onClick={toggleMode} color="inherit">
               {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}

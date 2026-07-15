@@ -51,6 +51,9 @@ statistics dashboard, and a dedicated Home Assistant custom integration
   merchant/carrier, delayed rate, success rate.
 - **Docker:** full Compose stack - backend, import worker, tracking worker,
   frontend, database, optional Redis, optional MQTT broker.
+- **Updates:** an in-app "check for updates" button compares the running
+  container's commit against the latest on GitHub - informational only,
+  it never runs `git pull`/Docker itself (see `docs/docker.md`).
 
 ## Quick start
 
@@ -62,7 +65,7 @@ cp backend/config.docker.example.yaml backend/config.yaml
 # edit backend/config.yaml: set a real security.jwt_secret_key and
 # security.mail_encryption_key, and match database.password to
 # POSTGRES_PASSWORD in .env
-docker compose up --build
+GIT_COMMIT=$(git rev-parse HEAD) docker compose up --build
 ```
 
 Backend: http://localhost:8000/docs · Frontend: http://localhost:5173
