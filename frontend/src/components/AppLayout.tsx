@@ -4,6 +4,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import MailIcon from "@mui/icons-material/MarkEmailUnread";
 import {
   AppBar,
   Box,
@@ -24,6 +25,7 @@ import { useThemeMode } from "../contexts/ThemeModeContext";
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: <DashboardIcon fontSize="small" /> },
   { path: "/statistics", label: "Statistics", icon: <BarChartIcon fontSize="small" /> },
+  { path: "/mailboxes", label: "Mailboxes", icon: <MailIcon fontSize="small" /> },
 ];
 
 export function AppLayout({ children }: PropsWithChildren) {
