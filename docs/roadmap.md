@@ -9,6 +9,11 @@
 - React + TypeScript + MUI frontend: registration, login, dashboard,
   dark/light mode.
 - Unit + API test suites.
+- Update check (`GET /system/version`, frontend button): compares the
+  running container's commit (baked in via the `GIT_COMMIT` Docker build
+  arg) against the latest commit on GitHub - informational only, by
+  design; see `docs/docker.md` for why it doesn't run `git pull`/Docker
+  itself.
 
 ## Phase 2 - Email import (done)
 

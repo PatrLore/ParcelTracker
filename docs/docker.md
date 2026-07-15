@@ -38,17 +38,21 @@ Edit `backend/config.yaml`:
 Then:
 
 ```bash
-docker compose up --build
+GIT_COMMIT=$(git rev-parse HEAD) docker compose up --build
 ```
+
+`GIT_COMMIT` is optional - plain `docker compose up --build` works too, it
+just means the in-app update check (see "Checking for updates" below) has
+nothing to compare and stays quiet instead of showing stale results.
 
 - Backend: `http://localhost:8000` (docs at `/docs`).
 - Frontend: `http://localhost:5173`.
 - Both the `backend` and `worker` containers run `alembic upgrade head` on
   every start (see `backend/entrypoint.sh` / `backend/worker-entrypoint.sh`),
   so migrations are always applied automatically, whichever starts first.
-- Add a mail account via `POST /api/v1/mail-accounts` (or the frontend, once
-  that UI lands) and the `worker` container polls it automatically once its
-  `poll_interval_seconds` has elapsed.
+- Add a mail account via the frontend's **Mailboxes** page (or
+  `POST /api/v1/mail-accounts` directly) and the `worker` container polls
+  it automatically once its `poll_interval_seconds` has elapsed.
 - With a `tracking_provider` configured, the `tracking-worker` container
   refreshes every non-terminal shipment's status on
   `tracking_provider.poll_interval_seconds`. You can also trigger a refresh
@@ -100,6 +104,23 @@ docker compose build --no-cache backend worker tracking-worker  # after editing
                                                                   # notification/pyproject.toml, or
                                                                   # mqtt/pyproject.toml
 docker compose build --no-cache frontend                         # after editing frontend/package.json
+```
+
+## Checking for updates
+
+The frontend's top bar has an update-check button (calls
+`GET /api/v1/system/version`) that compares the running container's commit
+- captured at build time via the `GIT_COMMIT` build arg above, exposed as
+the `PARCEL_SERVER_COMMIT` environment variable, see `app/core/version.py`
+- against the latest commit on `main` on GitHub. It's informational only:
+it does not run `git pull` or touch Docker itself. Doing that from inside
+the backend container would mean mounting the host's Docker socket into
+it, which is equivalent to root on the host for anyone who can reach the
+API - not a tradeoff this project makes silently. To actually update:
+
+```bash
+git pull
+GIT_COMMIT=$(git rev-parse HEAD) docker compose up --build -d
 ```
 
 ## Logs and data persistence

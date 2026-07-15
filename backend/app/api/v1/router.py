@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     orders,
     shipments,
     statistics,
+    system,
     users,
 )
 
@@ -26,3 +27,4 @@ api_router.include_router(dashboard.router)
 api_router.include_router(mail_accounts.router)
 api_router.include_router(statistics.router)
 api_router.include_router(notifications.router)
+api_router.include_router(system.router)

@@ -104,3 +104,11 @@ export interface MailAccountSyncResult {
   matched_orders: number;
   created_shipments: number;
 }
+
+export interface VersionInfo {
+  current_commit: string | null;
+  latest_commit: string | null;
+  update_available: boolean;
+  compare_url: string | null;
+  check_failed: boolean;
+}

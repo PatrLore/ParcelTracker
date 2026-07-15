@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: parcel-server-backend
     restart: unless-stopped
     volumes:
@@ -23,6 +25,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: parcel-server-backend
     entrypoint: ["/worker-entrypoint.sh"]
     restart: unless-stopped
@@ -41,6 +45,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: parcel-server-backend
     entrypoint: ["/tracking-worker-entrypoint.sh"]
     restart: unless-stopped
