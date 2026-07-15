@@ -36,6 +36,16 @@
   in the IMAP host/port/SSL for Gmail, Outlook/Hotmail/Live, Yahoo,
   iCloud, GMX, and WEB.DE, plus a per-provider app-password hint - editable
   afterward, and "Custom / other" for anything else.
+- Microsoft OAuth2 sign-in for Outlook.com/Hotmail/Live mailboxes (done):
+  Microsoft retired plain-password IMAP login for these accounts, so
+  `importer.imap_client.ImapMailbox` now supports XOAUTH2 alongside the
+  original `LOGIN`, fed by a device-code OAuth2 flow
+  (`app/services/oauth_microsoft.py`) that needs no public redirect URL -
+  fitting a self-hosted deployment at an arbitrary address. The frontend's
+  Outlook provider preset walks through "Sign in with Microsoft" instead of
+  a password field, with a "Reconnect" action if the token is later
+  revoked. See `docs/mailboxes.md` for the one-time Azure/Entra ID app
+  registration this requires and full setup steps.
 - Not yet done: real-world tuning of the parser regexes against actual
   provider emails (current patterns are best-effort, based on documented/
   typical formats - see `docs/development.md` on adding/refining a parser),

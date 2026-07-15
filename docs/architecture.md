@@ -163,7 +163,32 @@ app/worker.py (separate process/container)
 (`app/core/crypto.py`), keyed by `security.mail_encryption_key` in
 `config.yaml` - never the user's plaintext IMAP password. The API
 (`MailAccountRead`) never includes the password or its encrypted form in
-any response.
+any response. OAuth accounts (see below) store an encrypted refresh token
+the same way, in `MailAccount.encrypted_oauth_refresh_token`.
+
+### Microsoft OAuth2 (Outlook.com/Hotmail/Live)
+
+Microsoft retired plain-password IMAP login for these consumer accounts, so
+`MailAccount.auth_type` distinguishes `"password"` (the `LOGIN` path above)
+from `"oauth_microsoft"`, which authenticates via IMAP's XOAUTH2 mechanism
+instead (`ImapMailbox.connect` branches on
+`MailboxConfig.access_token is not None`).
+
+`app/services/oauth_microsoft.py` implements the OAuth2 *device-code* grant
+(RFC 8628) against Microsoft's identity platform - chosen over the more
+common authorization-code grant because it needs no public HTTPS redirect
+URL, which fits a self-hosted deployment reachable at an arbitrary address.
+Pending/completed flows live in module-level dicts, which is safe because
+the backend runs as a single Uvicorn process (`entrypoint.sh`).
+
+`MailAccountService.ensure_fresh_access_token` redeems the stored refresh
+token for a fresh access token before every sync (`EmailIngestionService.
+sync_account`), persisting Microsoft's (possibly rotated) new refresh
+token. A revoked/expired refresh token surfaces as a `ConnectionError`,
+mapped to the same 502 the sync endpoint already returns for unreachable
+mailboxes - the frontend's "Reconnect Microsoft sign-in" action re-runs the
+device-code flow to replace it. See `docs/mailboxes.md` for the one-time
+Azure/Entra ID app registration this needs and the end-user setup flow.
 
 ## Tracking provider integration (Phase 3)
 

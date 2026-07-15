@@ -54,7 +54,10 @@ work.
 ### Import worker (Phase 2, optional)
 
 To have shipping-confirmation emails picked up automatically, connect a
-mailbox via `POST /api/v1/mail-accounts`, then run the worker:
+mailbox from the frontend's `/mailboxes` page (or `POST /api/v1/mail-accounts`
+directly) - see [`mailboxes.md`](mailboxes.md) for provider-specific setup,
+including the extra one-time step Outlook.com/Hotmail/Live needs. Then run
+the worker:
 
 ```bash
 scripts/dev-worker.sh

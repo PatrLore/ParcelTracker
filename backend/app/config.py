@@ -147,6 +147,19 @@ class NotificationSettings(BaseModel):
     email: EmailChannelSettings = Field(default_factory=EmailChannelSettings)
 
 
+class MicrosoftOAuthSettings(BaseModel):
+    """Enables "Sign in with Microsoft" for Outlook.com/Hotmail/Live mail
+    accounts, whose plain-password IMAP login Microsoft has retired. Needs
+    an Azure/Entra ID app registration - see docs/mailboxes.md."""
+
+    enabled: bool = False
+    client_id: str = ""
+    #: "consumers" = personal Microsoft accounts only (Hotmail/Outlook/Live).
+    #: Use "common" instead if the app registration also needs to support
+    #: work/school accounts.
+    tenant: str = "consumers"
+
+
 class MqttSettings(BaseModel):
     enabled: bool = False
     host: str = "localhost"
@@ -170,6 +183,7 @@ class Settings(BaseModel):
     tracking_provider: TrackingProviderSettings = Field(default_factory=TrackingProviderSettings)
     notification: NotificationSettings = Field(default_factory=NotificationSettings)
     mqtt: MqttSettings = Field(default_factory=MqttSettings)
+    microsoft_oauth: MicrosoftOAuthSettings = Field(default_factory=MicrosoftOAuthSettings)
 
 
 def _config_path() -> Path:

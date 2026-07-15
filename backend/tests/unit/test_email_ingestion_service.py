@@ -9,6 +9,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
+import httpx
 import pytest
 from importer.emails import RawEmail
 
@@ -96,6 +97,40 @@ def test_sync_creates_email_order_and_shipment(db_session, mail_account):
 
     assert mail_account.last_seen_uid == 1
     assert mail_account.last_synced_at is not None
+
+
+def test_sync_refreshes_access_token_for_oauth_microsoft_account(db_session, user):
+    account = MailAccountService(db_session).create_oauth_microsoft_account(
+        user_id=user.id,
+        email_address="owner@hotmail.com",
+        refresh_token="rt-1",
+        folder="INBOX",
+        use_idle=False,
+        poll_interval_seconds=300,
+    )
+    seen_configs = []
+
+    def factory(config):
+        seen_configs.append(config)
+        return FakeMailbox(config, [_amazon_email(1)])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200, json={"access_token": "at-1", "refresh_token": "rt-2", "expires_in": 3600}
+        )
+
+    service = EmailIngestionService(
+        db_session,
+        mailbox_factory=factory,
+        http_client_factory=lambda: httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    result = service.sync_account(account)
+
+    assert result.fetched_emails == 1
+    assert seen_configs[0].access_token == "at-1"
+    assert seen_configs[0].password is None
+    assert account.encrypted_oauth_refresh_token != "rt-1"
 
 
 def test_sync_is_idempotent_across_repeated_fetches(db_session, mail_account):

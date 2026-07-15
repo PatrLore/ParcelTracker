@@ -7,6 +7,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.models.enums import MailAccountAuthType
+
 
 class MailAccountBase(BaseModel):
     email_address: EmailStr
@@ -40,6 +42,7 @@ class MailAccountRead(MailAccountBase):
 
     id: int
     user_id: int
+    auth_type: MailAccountAuthType
     is_active: bool
     last_seen_uid: int
     last_synced_at: datetime | None
@@ -50,3 +53,27 @@ class MailAccountSyncResult(BaseModel):
     fetched_emails: int
     matched_orders: int
     created_shipments: int
+
+
+class MicrosoftOAuthFlowStart(BaseModel):
+    flow_id: str
+    user_code: str
+    verification_uri: str
+    expires_in: int
+    interval: int
+
+
+class MicrosoftOAuthFlowStatus(BaseModel):
+    status: str  # "pending" | "complete"
+
+
+class MicrosoftOAuthFinalize(BaseModel):
+    flow_id: str
+    email_address: EmailStr
+    folder: str = "INBOX"
+    use_idle: bool = False
+    poll_interval_seconds: int = 300
+
+
+class MicrosoftOAuthReconnect(BaseModel):
+    flow_id: str

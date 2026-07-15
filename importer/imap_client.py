@@ -24,16 +24,22 @@ DEFAULT_IDLE_TIMEOUT_SECONDS = 30
 
 @dataclass(frozen=True)
 class MailboxConfig:
-    """Connection details for a single IMAP mailbox."""
+    """Connection details for a single IMAP mailbox.
+
+    Exactly one of ``password`` (plain IMAP LOGIN) or ``access_token``
+    (XOAUTH2 - required by providers like Outlook.com/Hotmail that no
+    longer accept Basic Authentication) must be set.
+    """
 
     host: str
     username: str
-    password: str
     port: int = 993
     use_ssl: bool = True
     folder: str = "INBOX"
     use_idle: bool = False
     poll_interval_seconds: int = 300
+    password: str | None = None
+    access_token: str | None = None
 
 
 def _decode_header_value(message: Message, header: str) -> str:
@@ -108,7 +114,10 @@ class ImapMailbox:
 
     def connect(self) -> None:
         self._client = IMAPClient(self.config.host, port=self.config.port, ssl=self.config.use_ssl)
-        self._client.login(self.config.username, self.config.password)
+        if self.config.access_token is not None:
+            self._client.oauth2_login(self.config.username, self.config.access_token)
+        else:
+            self._client.login(self.config.username, self.config.password)
         self._client.select_folder(self.config.folder)
 
     def disconnect(self) -> None:
