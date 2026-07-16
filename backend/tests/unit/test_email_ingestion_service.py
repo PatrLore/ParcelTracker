@@ -17,7 +17,7 @@ from app.models.enums import OrderStatus, ShipmentStatus
 from app.models.order import Order
 from app.schemas.mail_account import MailAccountCreate
 from app.schemas.user import UserCreate
-from app.services.email_ingestion_service import EmailIngestionService
+from app.services.email_ingestion_service import MAX_EMAILS_PER_SYNC, EmailIngestionService
 from app.services.mail_account_service import MailAccountService
 from app.services.user_service import UserService
 
@@ -33,8 +33,11 @@ class FakeMailbox:
     def session(self):
         yield self
 
-    def fetch_since(self, since_uid: int) -> list[RawEmail]:
-        return [email for email in self._emails if email.uid > since_uid]
+    def fetch_since(self, since_uid: int, limit: int | None = None) -> list[RawEmail]:
+        matching = sorted(
+            (email for email in self._emails if email.uid > since_uid), key=lambda email: email.uid
+        )
+        return matching[:limit] if limit is not None else matching
 
 
 def _fake_factory(emails: list[RawEmail]):
@@ -144,6 +147,24 @@ def test_sync_is_idempotent_across_repeated_fetches(db_session, mail_account):
 
     assert second_result.fetched_emails == 1
     assert second_result.matched_orders == 0  # message_id already seen -> skipped
+
+
+def test_sync_caps_fetch_and_reports_truncated(db_session, mail_account):
+    emails = [_amazon_email(uid) for uid in range(1, MAX_EMAILS_PER_SYNC + 51)]
+    service = EmailIngestionService(db_session, mailbox_factory=_fake_factory(emails))
+
+    result = service.sync_account(mail_account)
+
+    assert result.fetched_emails == MAX_EMAILS_PER_SYNC
+    assert result.truncated is True
+    # Only the oldest-first batch was processed - UID advances to the batch's end, not beyond.
+    assert mail_account.last_seen_uid == MAX_EMAILS_PER_SYNC
+
+    second_result = service.sync_account(mail_account)
+
+    assert second_result.fetched_emails == 50
+    assert second_result.truncated is False
+    assert mail_account.last_seen_uid == MAX_EMAILS_PER_SYNC + 50
 
 
 def test_sync_persists_unmatched_email_without_order(db_session, mail_account):

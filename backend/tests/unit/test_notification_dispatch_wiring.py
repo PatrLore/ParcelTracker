@@ -48,7 +48,7 @@ def test_new_confirmation_triggers_notification(db_session, user):
         def session(self):
             yield self
 
-        def fetch_since(self, since_uid: int) -> list[RawEmail]:
+        def fetch_since(self, since_uid: int, limit: int | None = None) -> list[RawEmail]:
             return [
                 RawEmail(
                     uid=1,
@@ -95,7 +95,7 @@ def test_reused_order_does_not_re_notify(db_session, user):
         def session(self):
             yield self
 
-        def fetch_since(self, since_uid: int) -> list[RawEmail]:
+        def fetch_since(self, since_uid: int, limit: int | None = None) -> list[RawEmail]:
             return [
                 RawEmail(
                     uid=since_uid + 1,

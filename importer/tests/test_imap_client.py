@@ -13,12 +13,15 @@ from importer.imap_client import ImapConnectionError, ImapMailbox, MailboxConfig
 
 class FakeIMAPClient:
     """Stands in for imapclient.IMAPClient - only the methods ImapMailbox
-    calls during connect() are implemented."""
+    calls during connect()/fetch_since() are implemented."""
 
-    def __init__(self, host, port=None, ssl=True):
+    def __init__(self, host, port=None, ssl=True, timeout=None):
+        self.timeout = timeout
         self.login_error: Exception | None = None
         self.select_error: Exception | None = None
         self.folders: list[tuple] = []
+        self.uids: list[int] = []
+        self.messages: dict[int, bytes] = {}
 
     def login(self, username, password):
         if self.login_error:
@@ -34,6 +37,12 @@ class FakeIMAPClient:
 
     def list_folders(self):
         return self.folders
+
+    def search(self, criteria):
+        return list(self.uids)
+
+    def fetch(self, uids, parts):
+        return {uid: {b"RFC822": self.messages[uid]} for uid in uids}
 
 
 def _config(**overrides) -> MailboxConfig:
@@ -117,6 +126,71 @@ def test_connect_wraps_folder_not_found_and_lists_available_folders(monkeypatch)
     assert "Nonexistent" in message
     assert "INBOX" in message
     assert "[Gmail]/All Mail" in message
+
+
+def test_connect_passes_socket_timeout_to_imapclient(monkeypatch):
+    captured = {}
+
+    def fake_constructor(host, port=None, ssl=True, timeout=None):
+        captured["timeout"] = timeout
+        return FakeIMAPClient(host, port=port, ssl=ssl, timeout=timeout)
+
+    monkeypatch.setattr(imap_client_module, "IMAPClient", fake_constructor)
+
+    ImapMailbox(_config()).connect()
+
+    assert captured["timeout"] == imap_client_module.DEFAULT_SOCKET_TIMEOUT_SECONDS
+
+
+def _raw_message(uid: int) -> bytes:
+    msg = EmailMessage()
+    msg["From"] = "shop@example.com"
+    msg["Subject"] = f"Message {uid}"
+    msg["Message-ID"] = f"<msg-{uid}@example.com>"
+    msg.set_content("body")
+    return bytes(msg)
+
+
+def test_fetch_since_returns_oldest_first_and_respects_limit(monkeypatch):
+    fake = FakeIMAPClient(None)
+    fake.uids = [5, 3, 4]
+    fake.messages = {uid: _raw_message(uid) for uid in fake.uids}
+    monkeypatch.setattr(imap_client_module, "IMAPClient", lambda *a, **kw: fake)
+
+    mailbox = ImapMailbox(_config())
+    mailbox.connect()
+
+    results = mailbox.fetch_since(since_uid=0, limit=2)
+
+    assert [r.uid for r in results] == [3, 4]
+
+
+def test_fetch_since_returns_all_when_no_limit(monkeypatch):
+    fake = FakeIMAPClient(None)
+    fake.uids = [5, 3, 4]
+    fake.messages = {uid: _raw_message(uid) for uid in fake.uids}
+    monkeypatch.setattr(imap_client_module, "IMAPClient", lambda *a, **kw: fake)
+
+    mailbox = ImapMailbox(_config())
+    mailbox.connect()
+
+    results = mailbox.fetch_since(since_uid=0)
+
+    assert [r.uid for r in results] == [3, 4, 5]
+
+
+def test_fetch_since_excludes_uids_not_greater_than_since_uid(monkeypatch):
+    fake = FakeIMAPClient(None)
+    fake.uids = [2, 3, 4]
+    fake.messages = {uid: _raw_message(uid) for uid in fake.uids}
+    monkeypatch.setattr(imap_client_module, "IMAPClient", lambda *a, **kw: fake)
+
+    mailbox = ImapMailbox(_config())
+    mailbox.connect()
+
+    results = mailbox.fetch_since(since_uid=2)
+
+    assert [r.uid for r in results] == [3, 4]
 
 
 def test_connect_folder_error_survives_broken_list_folders(monkeypatch):

@@ -151,11 +151,12 @@ def sync_mail_account(
         ) from exc
 
     logger.info(
-        "Synced %s (manual): %d new email(s), %d matched order(s), %d new shipment(s)",
+        "Synced %s (manual): %d new email(s), %d matched order(s), %d new shipment(s)%s",
         account.email_address,
         result.fetched_emails,
         result.matched_orders,
         result.created_shipments,
+        " (more remain - sync again to continue)" if result.truncated else "",
     )
     return result
 
