@@ -16,10 +16,19 @@ from email.message import Message
 from email.utils import parseaddr
 
 from imapclient import IMAPClient
+from imapclient.exceptions import IMAPClientError
 
 from importer.emails import RawEmail
 
 DEFAULT_IDLE_TIMEOUT_SECONDS = 30
+
+
+class ImapConnectionError(ConnectionError):
+    """Wraps an IMAP protocol error from login or folder selection (wrong
+    password, unknown/unselectable folder, ...) as a :class:`ConnectionError`
+    so it's covered by the same handling as a plain unreachable-host error
+    (see ``app.api.v1.endpoints.mail_accounts.sync_mail_account``), instead
+    of surfacing as an unhandled exception with no useful detail."""
 
 
 @dataclass(frozen=True)
@@ -114,11 +123,27 @@ class ImapMailbox:
 
     def connect(self) -> None:
         self._client = IMAPClient(self.config.host, port=self.config.port, ssl=self.config.use_ssl)
-        if self.config.access_token is not None:
-            self._client.oauth2_login(self.config.username, self.config.access_token)
-        else:
-            self._client.login(self.config.username, self.config.password)
-        self._client.select_folder(self.config.folder)
+        try:
+            if self.config.access_token is not None:
+                self._client.oauth2_login(self.config.username, self.config.access_token)
+            else:
+                self._client.login(self.config.username, self.config.password)
+        except IMAPClientError as exc:
+            raise ImapConnectionError(f"IMAP login failed: {exc}") from exc
+
+        try:
+            self._client.select_folder(self.config.folder)
+        except IMAPClientError as exc:
+            raise ImapConnectionError(
+                f"Folder '{self.config.folder}' not found or not selectable. "
+                f"Available folders: {', '.join(self._list_folder_names())}"
+            ) from exc
+
+    def _list_folder_names(self) -> list[str]:
+        try:
+            return sorted(name for _, _, name in self.client.list_folders())
+        except IMAPClientError:
+            return []
 
     def disconnect(self) -> None:
         if self._client is not None:
