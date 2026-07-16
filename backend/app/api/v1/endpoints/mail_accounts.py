@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.config import get_settings
+from app.core.logging import get_logger
 from app.database import get_db
 from app.models.user import User
 from app.schemas.mail_account import (
@@ -47,6 +48,8 @@ from app.services.oauth_microsoft import (
 router = APIRouter(
     prefix="/mail-accounts", tags=["mail-accounts"], dependencies=[Depends(get_current_user)]
 )
+
+logger = get_logger(__name__)
 
 
 def _require_microsoft_oauth_configured() -> None:
@@ -140,11 +143,21 @@ def sync_mail_account(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     try:
-        return EmailIngestionService(db).sync_account(account)
+        result = EmailIngestionService(db).sync_account(account)
     except ConnectionError as exc:
+        logger.warning("Manual sync failed for %s: %s", account.email_address, exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Could not reach mailbox: {exc}"
         ) from exc
+
+    logger.info(
+        "Synced %s (manual): %d new email(s), %d matched order(s), %d new shipment(s)",
+        account.email_address,
+        result.fetched_emails,
+        result.matched_orders,
+        result.created_shipments,
+    )
+    return result
 
 
 @router.post("/oauth/microsoft/start", response_model=MicrosoftOAuthFlowStart)

@@ -11,6 +11,23 @@ Most providers connect with a normal password or app-specific password.
 an optional "Sign in with Google" alternative to an app password - see
 further down.
 
+## Checking whether a sync actually fetched anything
+
+A manual **Sync now** click shows a short-lived toast in the UI with the
+result (`Synced ...: N email(s), N order(s) matched, N shipment(s)
+created.`). For a persistent record - or to check the background worker's
+automatic polling, which has no UI equivalent - both the manual sync
+endpoint and the worker log a line per sync (`app/api/v1/endpoints/
+mail_accounts.py` / `app/worker.py`):
+
+```bash
+docker compose logs -f backend   # manual "Sync now" clicks
+docker compose logs -f worker    # automatic background polling
+```
+
+Outside Docker, the same lines land in `logging.directory` from
+`config.yaml` (rotating file, see `app/core/logging.py`).
+
 ## Why Outlook.com/Hotmail/Live needs a separate setup
 
 Microsoft has retired plain-password ("Basic") IMAP authentication for
