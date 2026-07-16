@@ -40,6 +40,19 @@ other file needs to change. See any existing parser (e.g.
 `importer/tests/test_parsers.py` for how to test one with a crafted
 `RawEmail` fixture.
 
+### The carrier-only fallback (no merchant match)
+
+`EmailIngestionService._persist_carrier_only_shipment` (`backend/app/
+services/email_ingestion_service.py`) runs when `importer.parsers.detect()`
+finds no merchant match. It re-scans the email for a known carrier's
+tracking number (`tracking.find_tracking_numbers`, sender-agnostic) and, if
+found, gets or creates a placeholder `Order` (`merchant` = the carrier name,
+`order_number` = the tracking number) to attach a `Shipment` to. This is
+what makes a carrier's own delivery notification (or a merchant email that
+was forwarded, which replaces the `From` header and breaks every merchant
+parser's sender-domain match) still show up instead of being silently
+dropped - see `docs/mailboxes.md` for the user-facing explanation.
+
 ### Adding a carrier
 
 Add one entry to `CARRIER_PATTERNS` (and `_DETECTION_ORDER`, for
