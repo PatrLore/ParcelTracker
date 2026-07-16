@@ -33,13 +33,22 @@ from app.repositories.shipment_repository import ShipmentRepository
 from app.schemas.mail_account import MailAccountSyncResult
 from app.services.mail_account_service import MailAccountService
 
+#: Upper bound on how many emails a single sync() call will fetch. Without
+#: this, a mailbox with a large backlog (e.g. a first-time sync against
+#: Gmail's "All Mail" folder, which has no per-folder UID history to resume
+#: from) would try to FETCH its entire history in one blocking IMAP call -
+#: see importer.imap_client.ImapMailbox.fetch_since. Oldest-first ordering
+#: means repeated syncs make steady progress through a large backlog instead
+#: of re-fetching the same batch.
+MAX_EMAILS_PER_SYNC = 200
+
 
 class Mailbox(Protocol):
     """The subset of :class:`importer.imap_client.ImapMailbox` this service needs."""
 
     def session(self): ...  # noqa: D102
 
-    def fetch_since(self, since_uid: int) -> list[RawEmail]: ...  # noqa: D102
+    def fetch_since(self, since_uid: int, limit: int | None = None) -> list[RawEmail]: ...  # noqa: D102
 
 
 MailboxFactory = Callable[[MailboxConfig], Mailbox]
@@ -79,7 +88,7 @@ class EmailIngestionService:
         mailbox = self._mailbox_factory(config)
 
         with mailbox.session():
-            raw_emails = mailbox.fetch_since(account.last_seen_uid)
+            raw_emails = mailbox.fetch_since(account.last_seen_uid, limit=MAX_EMAILS_PER_SYNC)
 
         matched_orders = 0
         created_shipments = 0
@@ -115,6 +124,7 @@ class EmailIngestionService:
             fetched_emails=len(raw_emails),
             matched_orders=matched_orders,
             created_shipments=created_shipments,
+            truncated=len(raw_emails) == MAX_EMAILS_PER_SYNC,
         )
 
     def _persist_parsed_order(self, parsed: ParsedOrder, user_id: int) -> Order | None:

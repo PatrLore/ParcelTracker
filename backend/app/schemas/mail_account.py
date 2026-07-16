@@ -53,6 +53,7 @@ class MailAccountSyncResult(BaseModel):
     fetched_emails: int
     matched_orders: int
     created_shipments: int
+    truncated: bool = False
 
 
 class MicrosoftOAuthFlowStart(BaseModel):

@@ -21,6 +21,11 @@ from imapclient.exceptions import IMAPClientError
 from importer.emails import RawEmail
 
 DEFAULT_IDLE_TIMEOUT_SECONDS = 30
+#: Socket timeout for all non-IDLE IMAP operations (connect, login, search,
+#: fetch, ...). Without this, imapclient's default (no timeout - blocking
+#: forever) means a stalled connection or an unresponsive server hangs the
+#: sync indefinitely with no feedback, instead of failing with a clear error.
+DEFAULT_SOCKET_TIMEOUT_SECONDS = 60.0
 
 
 class ImapConnectionError(ConnectionError):
@@ -122,7 +127,12 @@ class ImapMailbox:
         self._client: IMAPClient | None = None
 
     def connect(self) -> None:
-        self._client = IMAPClient(self.config.host, port=self.config.port, ssl=self.config.use_ssl)
+        self._client = IMAPClient(
+            self.config.host,
+            port=self.config.port,
+            ssl=self.config.use_ssl,
+            timeout=DEFAULT_SOCKET_TIMEOUT_SECONDS,
+        )
         try:
             if self.config.access_token is not None:
                 self._client.oauth2_login(self.config.username, self.config.access_token)
@@ -156,11 +166,20 @@ class ImapMailbox:
             raise RuntimeError("ImapMailbox is not connected; call connect() first")
         return self._client
 
-    def fetch_since(self, since_uid: int) -> list[RawEmail]:
-        """Fetch every message with a UID greater than ``since_uid``."""
-        uids = [uid for uid in self.client.search(["UID", f"{since_uid + 1}:*"]) if uid > since_uid]
+    def fetch_since(self, since_uid: int, limit: int | None = None) -> list[RawEmail]:
+        """Fetch messages with a UID greater than ``since_uid``, oldest
+        first. If ``limit`` is set, fetches at most that many in this call -
+        see ``EmailIngestionService`` for why: a mailbox with a large
+        backlog (e.g. a first-time sync against Gmail's "All Mail") could
+        otherwise mean one FETCH pulling in everything the account has ever
+        received, in a single call with no progress feedback."""
+        uids = sorted(
+            uid for uid in self.client.search(["UID", f"{since_uid + 1}:*"]) if uid > since_uid
+        )
         if not uids:
             return []
+        if limit is not None:
+            uids = uids[:limit]
 
         response = self.client.fetch(uids, ["RFC822"])
         return [parse_raw_message(uid, data[b"RFC822"]) for uid, data in sorted(response.items())]

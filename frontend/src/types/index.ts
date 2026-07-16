@@ -106,6 +106,7 @@ export interface MailAccountSyncResult {
   fetched_emails: number;
   matched_orders: number;
   created_shipments: number;
+  truncated: boolean;
 }
 
 /** "Sign in with Microsoft/Google" device-code flow - see backend

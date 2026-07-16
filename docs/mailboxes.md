@@ -194,6 +194,19 @@ name from there. (Gmail also hides "All Mail" from IMAP entirely unless
 checked - that has to be enabled first, or it won't appear in the list
 either.)
 
+### Large backlogs (e.g. switching to "All Mail") are fetched in batches
+
+IMAP UIDs are scoped per folder, so switching a mailbox's **Folder** to
+somewhere with years of history (like "All Mail") makes the very next sync
+look like a first-ever sync for that folder - potentially thousands of
+messages. To keep that from blocking a single sync indefinitely, each sync
+fetches at most 200 messages (oldest first) and reports the result as
+truncated if more remain (`Synced ...: 200 email(s), ... More may remain -
+sync again to continue.`). Click **Sync now** repeatedly (or just wait for
+the next automatic poll) until a result comes back without that note - the
+mailbox is then fully caught up and back to polling only new mail going
+forward.
+
 | Provider | Auth | Notes |
 | --- | --- | --- |
 | Gmail (personal) | App password, or Sign in with Google | <https://myaccount.google.com/apppasswords> |

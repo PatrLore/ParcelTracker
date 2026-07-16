@@ -407,7 +407,8 @@ export function MailAccountsPage() {
       );
       setNotice(
         `Synced ${account.email_address}: ${data.fetched_emails} email(s), ` +
-          `${data.matched_orders} order(s) matched, ${data.created_shipments} shipment(s) created.`,
+          `${data.matched_orders} order(s) matched, ${data.created_shipments} shipment(s) created.` +
+          (data.truncated ? " More may remain - sync again to continue." : ""),
       );
       loadAccounts();
     } catch (err) {
