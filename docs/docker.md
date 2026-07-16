@@ -116,7 +116,16 @@ the `PARCEL_SERVER_COMMIT` environment variable, see `app/core/version.py`
 it does not run `git pull` or touch Docker itself. Doing that from inside
 the backend container would mean mounting the host's Docker socket into
 it, which is equivalent to root on the host for anyone who can reach the
-API - not a tradeoff this project makes silently. To actually update:
+API - not a tradeoff this project makes silently. To actually update, run
+on the server (not from inside a container):
+
+```bash
+scripts/update-server.sh
+```
+
+This is what the update-check button's dialog shows too. It refuses to run
+over uncommitted local changes (commit or stash first), then does exactly
+what you'd otherwise type by hand:
 
 ```bash
 git pull

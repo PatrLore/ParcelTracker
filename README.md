@@ -53,7 +53,8 @@ statistics dashboard, and a dedicated Home Assistant custom integration
   frontend, database, optional Redis, optional MQTT broker.
 - **Updates:** an in-app "check for updates" button compares the running
   container's commit against the latest on GitHub - informational only,
-  it never runs `git pull`/Docker itself (see `docs/docker.md`).
+  it never runs `git pull`/Docker itself; `scripts/update-server.sh` does
+  the actual update in one command (see `docs/docker.md`).
 
 ## Quick start
 
