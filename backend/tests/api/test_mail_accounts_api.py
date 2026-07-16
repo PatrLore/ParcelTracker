@@ -1,10 +1,17 @@
-"""API tests for mail account CRUD (sync is covered at the service level,
-since it requires a real or faked IMAP connection - see
-tests/unit/test_email_ingestion_service.py)."""
+"""API tests for mail account CRUD (fetch/parse/persist behavior during a
+sync is covered at the service level, since it requires a real or faked
+IMAP connection - see tests/unit/test_email_ingestion_service.py). The
+tests below only check that the sync endpoint logs its result, so it's
+traceable in the log file even when a manual "Sync now" click was missed
+in the UI."""
 
 from __future__ import annotations
 
+import logging
+
 import pytest
+
+from app.schemas.mail_account import MailAccountSyncResult
 
 
 @pytest.fixture()
@@ -70,3 +77,52 @@ def test_update_and_delete_mail_account(client, auth_headers):
 def test_mail_accounts_require_authentication(client):
     response = client.get("/api/v1/mail-accounts")
     assert response.status_code == 401
+
+
+def test_sync_logs_result_on_success(client, auth_headers, monkeypatch, caplog):
+    account_id = client.post("/api/v1/mail-accounts", json=_payload(), headers=auth_headers).json()[
+        "id"
+    ]
+
+    class StubIngestionService:
+        def __init__(self, db):
+            pass
+
+        def sync_account(self, account):
+            return MailAccountSyncResult(fetched_emails=2, matched_orders=1, created_shipments=1)
+
+    monkeypatch.setattr(
+        "app.api.v1.endpoints.mail_accounts.EmailIngestionService", StubIngestionService
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.api.v1.endpoints.mail_accounts"):
+        response = client.post(f"/api/v1/mail-accounts/{account_id}/sync", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert (
+        "Synced me@gmail.com (manual): 2 new email(s), 1 matched order(s), 1 new shipment(s)"
+        in caplog.text
+    )
+
+
+def test_sync_logs_warning_on_connection_error(client, auth_headers, monkeypatch, caplog):
+    account_id = client.post("/api/v1/mail-accounts", json=_payload(), headers=auth_headers).json()[
+        "id"
+    ]
+
+    class StubIngestionService:
+        def __init__(self, db):
+            pass
+
+        def sync_account(self, account):
+            raise ConnectionError("mailbox unreachable")
+
+    monkeypatch.setattr(
+        "app.api.v1.endpoints.mail_accounts.EmailIngestionService", StubIngestionService
+    )
+
+    with caplog.at_level(logging.WARNING, logger="app.api.v1.endpoints.mail_accounts"):
+        response = client.post(f"/api/v1/mail-accounts/{account_id}/sync", headers=auth_headers)
+
+    assert response.status_code == 502
+    assert "Manual sync failed for me@gmail.com: mailbox unreachable" in caplog.text
