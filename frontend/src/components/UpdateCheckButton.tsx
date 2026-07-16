@@ -21,7 +21,7 @@ import { useState } from "react";
 import { apiClient } from "../api/client";
 import type { VersionInfo } from "../types";
 
-const UPDATE_COMMAND = "git pull && GIT_COMMIT=$(git rev-parse HEAD) docker compose up --build -d";
+const UPDATE_COMMAND = "./scripts/update-server.sh";
 
 function shortSha(sha: string | null): string {
   return sha ? sha.slice(0, 7) : "?";
@@ -119,7 +119,9 @@ export function UpdateCheckButton() {
                 </Box>
                 <Typography variant="body2" color="text.secondary">
                   Run this on the server hosting Parcel Server (not from here - this
-                  button only checks, it never updates anything by itself).
+                  button only checks, it never updates anything by itself). Pulls the
+                  latest code and rebuilds/restarts the Docker Compose stack - see
+                  scripts/update-server.sh.
                 </Typography>
                 {info.compare_url && (
                   <Link href={info.compare_url} target="_blank" rel="noopener noreferrer">
