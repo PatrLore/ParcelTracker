@@ -190,6 +190,27 @@ mailboxes - the frontend's "Reconnect Microsoft sign-in" action re-runs the
 device-code flow to replace it. See `docs/mailboxes.md` for the one-time
 Azure/Entra ID app registration this needs and the end-user setup flow.
 
+### Google OAuth2 (Gmail) - optional alternative to an app password
+
+`MailAccount.auth_type` also has an `"oauth_google"` value, structurally
+identical to `"oauth_microsoft"` above and sharing the same `ImapMailbox`/
+`MailboxConfig.access_token` mechanism - Gmail's app-password path (still
+supported, unlike Outlook.com/Hotmail) remains the default; this is an
+opt-in alternative offered as a second, distinctly-labeled Gmail entry in
+the provider picker.
+
+`app/services/oauth_google.py` mirrors `oauth_microsoft.py`'s device-code
+flow against Google's endpoints instead, which differ in two ways: the
+device-code response field is `verification_url` rather than
+`verification_uri` (normalized to the same internal `DeviceFlow.
+verification_uri` either way), and Google's token endpoint requires a
+`client_secret` even for the "TVs and Limited Input devices" client type
+Microsoft's public-client flow doesn't need. `MailAccountService` picks the
+right refresh function per `account.auth_type` via a small dispatch table
+(`_OAUTH_REFRESH_FUNCS`) rather than duplicating `ensure_fresh_access_token`
+per provider. See `docs/mailboxes.md` for the Google Cloud OAuth client
+setup this needs.
+
 ## Tracking provider integration (Phase 3)
 
 ```

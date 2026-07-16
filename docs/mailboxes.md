@@ -7,7 +7,9 @@ providers (`frontend/src/constants/mailProviders.ts`); "Custom / other"
 covers anything else.
 
 Most providers connect with a normal password or app-specific password.
-**Outlook.com/Hotmail/Live is the exception** - see below.
+**Outlook.com/Hotmail/Live is the exception** - see below. Gmail also offers
+an optional "Sign in with Google" alternative to an app password - see
+further down.
 
 ## Why Outlook.com/Hotmail/Live needs a separate setup
 
@@ -98,11 +100,68 @@ Microsoft sign-in** action in the mailbox list - it repeats the same
 device-code flow and replaces the stored token without recreating the
 mailbox.
 
+## Optional: "Sign in with Google" for Gmail
+
+Unlike Outlook.com/Hotmail, a Gmail app password still works fine for IMAP -
+there's no requirement to switch. "Sign in with Google" is offered as an
+**alternative**, useful if you'd rather not generate an app password, or if
+2-Step Verification isn't enabled on the account (a prerequisite for app
+passwords, but not for this OAuth2 flow). Pick **"Gmail (Google Mail) -
+Sign in with Google"** as the provider instead of the app-password entry to
+use it.
+
+Structurally this works exactly like the Microsoft flow above (a
+device-code sign-in, no password ever entered into Parcel Server, a
+"Reconnect Google sign-in" action if the token is later revoked) - see
+`backend/app/services/oauth_google.py`. The one-time setup differs though,
+since it goes through Google Cloud rather than Azure/Entra ID:
+
+### One-time setup: registering a Google Cloud OAuth client
+
+1. Go to <https://console.cloud.google.com/> and create a new project (or
+   pick an existing one) - top left, next to the Google Cloud logo.
+2. Go to **APIs & Services** → **OAuth consent screen**.
+   - **User type**: **External** (this is what allows any Gmail account,
+     not just ones inside a Google Workspace organization, to sign in).
+   - Fill in the required app name/support email fields - anything
+     recognizable, e.g. "Parcel Server".
+   - Under **Scopes**, add `https://mail.google.com/` (full Gmail/IMAP
+     access - there's no narrower IMAP-only scope).
+   - Under **Test users**, add the Gmail address(es) you'll actually
+     connect to Parcel Server.
+   - **Leave the app in "Testing" publishing status.** Requesting
+     `https://mail.google.com/` for a "Published"/production app requires
+     Google's app verification process (a multi-week review, meant for
+     public-facing apps) - staying in Testing with your own account(s)
+     listed as test users skips that entirely and is the right choice for
+     a self-hosted, personal-use server.
+3. Go to **APIs & Services** → **Credentials** → **Create Credentials** →
+   **OAuth client ID**.
+   - **Application type**: **TVs and Limited Input devices**. This is the
+     client type that supports the device-code flow Parcel Server uses.
+   - Give it a name (e.g. "Parcel Server") and create it.
+4. Copy the **Client ID** and **Client secret** shown - unlike Microsoft's
+   flow, Google's device-code token exchange requires a client secret even
+   for this "limited input device" client type.
+5. In `backend/config.yaml`, set:
+
+   ```yaml
+   google_oauth:
+     enabled: true
+     client_id: "<the Client ID from step 4>"
+     client_secret: "<the Client secret from step 4>"
+   ```
+
+6. Restart the backend so it picks up the new config.
+
+Test users' refresh tokens keep working indefinitely in Testing mode -
+there's no need to ever "publish" the app for personal use.
+
 ## Provider reference
 
 | Provider | Auth | Notes |
 | --- | --- | --- |
-| Gmail (personal) | App password | <https://myaccount.google.com/apppasswords> |
+| Gmail (personal) | App password, or Sign in with Google | <https://myaccount.google.com/apppasswords> |
 | Outlook / Hotmail / Live | Sign in with Microsoft | see above |
 | Yahoo Mail | App password | Yahoo Account Security |
 | iCloud Mail | App-specific password | Apple ID account page |

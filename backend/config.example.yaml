@@ -103,3 +103,12 @@ microsoft_oauth:
   client_id: ""
   # "consumers" = personal Microsoft accounts only (Hotmail/Outlook/Live).
   tenant: "consumers"
+
+# "Sign in with Google" for Gmail mailboxes - an alternative to an app
+# password (which still works for personal Gmail accounts). Needs a Google
+# Cloud OAuth client of type "TVs and Limited Input devices" - see
+# docs/mailboxes.md.
+google_oauth:
+  enabled: false
+  client_id: ""
+  client_secret: ""

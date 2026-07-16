@@ -160,6 +160,19 @@ class MicrosoftOAuthSettings(BaseModel):
     tenant: str = "consumers"
 
 
+class GoogleOAuthSettings(BaseModel):
+    """Enables "Sign in with Google" for Gmail mailboxes, as an alternative
+    to an app password (which still works for personal Gmail accounts,
+    unlike Outlook.com/Hotmail). Needs a Google Cloud OAuth client of type
+    "TVs and Limited Input devices" - see docs/mailboxes.md."""
+
+    enabled: bool = False
+    client_id: str = ""
+    #: Unlike Microsoft's public-client device flow, Google's device flow
+    #: requires a client secret even for this "limited input device" type.
+    client_secret: str = ""
+
+
 class MqttSettings(BaseModel):
     enabled: bool = False
     host: str = "localhost"
@@ -184,6 +197,7 @@ class Settings(BaseModel):
     notification: NotificationSettings = Field(default_factory=NotificationSettings)
     mqtt: MqttSettings = Field(default_factory=MqttSettings)
     microsoft_oauth: MicrosoftOAuthSettings = Field(default_factory=MicrosoftOAuthSettings)
+    google_oauth: GoogleOAuthSettings = Field(default_factory=GoogleOAuthSettings)
 
 
 def _config_path() -> Path:
