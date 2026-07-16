@@ -69,6 +69,13 @@
   "Reconnect" UI already built for Microsoft - both share
   `OAuthDeviceCodePanel` in `MailAccountsPage.tsx`. See `docs/mailboxes.md`
   for the one-time Google Cloud OAuth client setup this requires.
+- Carrier-only fallback (done): a delivery notification with no merchant
+  match (a carrier's own email, e.g. DHL/UPS directly, or any forwarded
+  email - forwarding replaces the `From` header, breaking every merchant
+  parser's sender-domain match) still gets tracked if a known carrier's
+  tracking number is found in the text, via a minimal placeholder order
+  (merchant = carrier name, order_number = the tracking number). See
+  `docs/mailboxes.md`/`docs/development.md` for details.
 - Not yet done: real-world tuning of the parser regexes against actual
   provider emails (current patterns are best-effort, based on documented/
   typical formats - see `docs/development.md` on adding/refining a parser),

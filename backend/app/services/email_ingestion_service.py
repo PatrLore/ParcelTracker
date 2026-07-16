@@ -18,6 +18,7 @@ from importer.imap_client import ImapMailbox, MailboxConfig
 from importer.parsers import ParsedOrder, detect
 from notification import NotificationDispatcher, NotificationMessage
 from sqlalchemy.orm import Session
+from tracking import find_tracking_numbers
 
 from app.models.carrier import Carrier
 from app.models.email import Email
@@ -98,10 +99,16 @@ class EmailIngestionService:
                 continue
 
             parsed = detect(raw_email)
-            order = self._persist_parsed_order(parsed, account.user_id) if parsed else None
+            if parsed:
+                order = self._persist_parsed_order(parsed, account.user_id)
+                new_shipments = self._persist_shipments(order, parsed) if order else 0
+            else:
+                order, new_shipments = self._persist_carrier_only_shipment(
+                    raw_email, account.user_id
+                )
             if order is not None:
                 matched_orders += 1
-                created_shipments += self._persist_shipments(order, parsed)
+                created_shipments += new_shipments
 
             self.emails.add(
                 Email(
@@ -163,6 +170,64 @@ class EmailIngestionService:
             order.status = OrderStatus.SHIPPED
 
         return order
+
+    def _persist_carrier_only_shipment(
+        self, raw_email: RawEmail, user_id: int
+    ) -> tuple[Order | None, int]:
+        """Fallback for emails no merchant parser recognizes - notably a
+        carrier's own delivery notification (DHL, UPS, ...), which has no
+        shop/order context to match on, and any email a mail client has
+        forwarded (which replaces the ``From`` header with the forwarder's
+        own address, breaking every merchant parser's sender-domain match
+        regardless of the original sender).
+
+        If the text still contains a known carrier's tracking number, get or
+        create a minimal placeholder order (merchant=carrier name,
+        order_number=the tracking number, since there's no real order number
+        to key on) so the shipment is at least visible and tracked, instead
+        of the email being silently discarded."""
+        tracking = find_tracking_numbers(f"{raw_email.subject}\n{raw_email.body}")
+        if not tracking:
+            return None, 0
+
+        tracking_number, carrier_name = next(iter(tracking.items()))
+        order = self.orders.get_by_merchant_and_number(user_id, carrier_name, tracking_number)
+        if order is None:
+            order = self.orders.add(
+                Order(
+                    user_id=user_id,
+                    merchant=carrier_name,
+                    order_number=tracking_number,
+                    order_date=raw_email.received_at.date(),
+                    status=OrderStatus.SHIPPED,
+                )
+            )
+            if self._dispatcher is not None:
+                self._dispatcher.dispatch(
+                    NotificationMessage(
+                        event="new_confirmation",
+                        title=f"New shipment from {carrier_name}",
+                        body=(
+                            f"A {carrier_name} tracking number was detected with no shop "
+                            "context (e.g. a forwarded carrier notification)."
+                        ),
+                        metadata={"merchant": carrier_name, "order_number": tracking_number},
+                    )
+                )
+
+        if self.shipments.get_by_order_and_tracking_number(order.id, tracking_number):
+            return order, 0
+
+        carrier = self._get_or_create_carrier(carrier_name)
+        self.shipments.add(
+            Shipment(
+                order_id=order.id,
+                carrier_id=carrier.id if carrier else None,
+                tracking_number=tracking_number,
+                tracking_status=ShipmentStatus.LABEL_CREATED,
+            )
+        )
+        return order, 1
 
     def _persist_shipments(self, order: Order, parsed: ParsedOrder) -> int:
         created = 0

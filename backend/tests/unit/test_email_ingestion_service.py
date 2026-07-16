@@ -167,6 +167,53 @@ def test_sync_caps_fetch_and_reports_truncated(db_session, mail_account):
     assert mail_account.last_seen_uid == MAX_EMAILS_PER_SYNC + 50
 
 
+def _dhl_forward_email(uid: int, tracking_number: str = "123456789012") -> RawEmail:
+    """A plain DHL delivery notification, manually forwarded - the sender
+    is the mailbox owner's own address (forwarding replaces the From
+    header), and the text has no merchant/order context, only a tracking
+    number."""
+    return RawEmail(
+        uid=uid,
+        message_id=f"<dhl-forward-{uid}@example.com>",
+        subject="Fwd: Ihre Sendung ist unterwegs",
+        sender="owner@gmail.com",
+        received_at=datetime(2026, 7, 1, tzinfo=UTC),
+        text_body=f"Ihre Sendungsnummer lautet {tracking_number}.",
+    )
+
+
+def test_sync_creates_placeholder_order_for_carrier_only_email(db_session, mail_account):
+    service = EmailIngestionService(
+        db_session, mailbox_factory=_fake_factory([_dhl_forward_email(1)])
+    )
+
+    result = service.sync_account(mail_account)
+
+    assert result.fetched_emails == 1
+    assert result.matched_orders == 1
+    assert result.created_shipments == 1
+
+    order = db_session.query(Order).one()
+    assert order.merchant == "DHL"
+    assert order.order_number == "123456789012"
+    assert order.status == OrderStatus.SHIPPED
+
+    shipment = order.shipments[0]
+    assert shipment.tracking_number == "123456789012"
+    assert shipment.carrier.name == "DHL"
+
+
+def test_sync_reuses_placeholder_order_for_duplicate_carrier_email(db_session, mail_account):
+    emails = [_dhl_forward_email(1), _dhl_forward_email(2)]
+    service = EmailIngestionService(db_session, mailbox_factory=_fake_factory(emails))
+
+    result = service.sync_account(mail_account)
+
+    assert result.matched_orders == 2
+    assert result.created_shipments == 1
+    assert db_session.query(Order).count() == 1
+
+
 def test_sync_persists_unmatched_email_without_order(db_session, mail_account):
     email = RawEmail(
         uid=1,

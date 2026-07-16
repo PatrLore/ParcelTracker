@@ -11,6 +11,36 @@ Most providers connect with a normal password or app-specific password.
 an optional "Sign in with Google" alternative to an app password - see
 further down.
 
+## Why a synced email might not become an order/shipment
+
+A sync can report "N email(s)" fetched but "0 order(s) matched" - that's
+expected for most mail in an inbox (newsletters, receipts for non-shipped
+purchases, ...), but two cases are worth knowing about if a shipping-related
+email you expected to be recognized wasn't:
+
+- **Forwarding breaks sender-based recognition.** Every merchant parser
+  (`importer/parsers/`) recognizes an email by the domain in its `From:`
+  header (e.g. `amazon.de`). Manually forwarding an email (the "Forward"
+  button in Gmail/Outlook/...) replaces that header with your own address -
+  the original sender only survives as quoted text in the body, which
+  parsers don't read. If you need Parcel Server to see a shop's
+  confirmation, connect the mailbox it actually arrives in directly, rather
+  than forwarding it - see "Polling a folder other than INBOX" above if it's
+  filtered into a label/folder there.
+- **Carriers (DHL, UPS, ...) aren't "merchants".** A shop's shipping
+  confirmation is recognized by its merchant parser; DHL/UPS/etc. themselves
+  are only known as *carriers* (`tracking/carriers.py`, tracking-number
+  format only) - there's no merchant parser for them, since they don't sell
+  anything. A direct delivery notification from a carrier itself (no shop
+  name/order number in the text), including one that's been forwarded, has
+  no merchant to match on at all. If the text still contains a recognizable
+  tracking number, Parcel Server falls back to creating a minimal
+  placeholder order (merchant set to the carrier's name, e.g. "DHL"; the
+  tracking number stands in for an order number, since there is none) so
+  the shipment is still tracked and visible - rather than silently
+  discarding it. This placeholder order behaves like any other: it shows up
+  on the dashboard, gets polled by the tracking worker, and can be archived.
+
 ## Checking whether a sync actually fetched anything
 
 A manual **Sync now** click shows a short-lived toast in the UI with the
