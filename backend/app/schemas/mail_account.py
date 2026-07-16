@@ -77,3 +77,27 @@ class MicrosoftOAuthFinalize(BaseModel):
 
 class MicrosoftOAuthReconnect(BaseModel):
     flow_id: str
+
+
+class GoogleOAuthFlowStart(BaseModel):
+    flow_id: str
+    user_code: str
+    verification_uri: str
+    expires_in: int
+    interval: int
+
+
+class GoogleOAuthFlowStatus(BaseModel):
+    status: str  # "pending" | "complete"
+
+
+class GoogleOAuthFinalize(BaseModel):
+    flow_id: str
+    email_address: EmailStr
+    folder: str = "INBOX"
+    use_idle: bool = False
+    poll_interval_seconds: int = 300
+
+
+class GoogleOAuthReconnect(BaseModel):
+    flow_id: str

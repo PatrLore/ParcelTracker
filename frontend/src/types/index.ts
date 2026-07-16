@@ -70,7 +70,7 @@ export interface StatisticsSummary {
   total_shipments: number;
 }
 
-export type MailAccountAuthType = "password" | "oauth_microsoft";
+export type MailAccountAuthType = "password" | "oauth_microsoft" | "oauth_google";
 
 export interface MailAccount {
   id: number;
@@ -108,10 +108,11 @@ export interface MailAccountSyncResult {
   created_shipments: number;
 }
 
-/** "Sign in with Microsoft" device-code flow - see
- * backend `app.services.oauth_microsoft` for why this shape (no redirect
- * URL, user enters a short code on microsoft.com/devicelogin). */
-export interface MicrosoftOAuthFlowStart {
+/** "Sign in with Microsoft/Google" device-code flow - see backend
+ * `app.services.oauth_microsoft`/`oauth_google` for why this shape (no
+ * redirect URL, user enters a short code on a provider verification page).
+ * Both providers' endpoints return/accept this same shape. */
+export interface OAuthDeviceFlowStart {
   flow_id: string;
   user_code: string;
   verification_uri: string;
@@ -119,11 +120,11 @@ export interface MicrosoftOAuthFlowStart {
   interval: number;
 }
 
-export interface MicrosoftOAuthFlowStatus {
+export interface OAuthDeviceFlowStatus {
   status: "pending" | "complete";
 }
 
-export interface MicrosoftOAuthFinalizeInput {
+export interface OAuthFinalizeInput {
   flow_id: string;
   email_address: string;
   folder: string;

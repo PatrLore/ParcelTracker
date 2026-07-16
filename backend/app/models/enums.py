@@ -29,7 +29,9 @@ class MailAccountAuthType(enum.StrEnum):
     """How a :class:`~app.models.mail_account.MailAccount` authenticates to
     its IMAP server. ``OAUTH_MICROSOFT`` exists because Microsoft retired
     plain-password Basic Authentication for Outlook.com/Hotmail/Live
-    accounts - see ``docs/mailboxes.md``."""
+    accounts; ``OAUTH_GOOGLE`` is an alternative to a Gmail app password -
+    see ``docs/mailboxes.md``."""
 
     PASSWORD = "password"
     OAUTH_MICROSOFT = "oauth_microsoft"
+    OAUTH_GOOGLE = "oauth_google"

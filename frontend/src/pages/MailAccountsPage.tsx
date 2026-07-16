@@ -43,10 +43,11 @@ import { apiClient } from "../api/client";
 import { CUSTOM_PROVIDER_ID, MAIL_PROVIDER_PRESETS } from "../constants/mailProviders";
 import type {
   MailAccount,
+  MailAccountAuthType,
   MailAccountInput,
   MailAccountSyncResult,
-  MicrosoftOAuthFlowStart,
-  MicrosoftOAuthFlowStatus,
+  OAuthDeviceFlowStart,
+  OAuthDeviceFlowStatus,
 } from "../types";
 
 const EMPTY_FORM: MailAccountInput = {
@@ -61,28 +62,49 @@ const EMPTY_FORM: MailAccountInput = {
   poll_interval_seconds: 300,
 };
 
-type MicrosoftSignInStatus = "idle" | "starting" | "waiting" | "complete" | "error";
+type OAuthSignInStatus = "idle" | "starting" | "waiting" | "complete" | "error";
+
+/** "microsoft" or "google" - matches the ``/mail-accounts/oauth/<name>/...``
+ * endpoint path segment on the backend, so it doubles as the URL fragment. */
+type OAuthProviderName = "microsoft" | "google";
+
+const OAUTH_PROVIDER_LABEL: Record<OAuthProviderName, string> = {
+  microsoft: "Microsoft",
+  google: "Google",
+};
+
+function oauthProviderFromAuthType(
+  authType: MailAccountAuthType | undefined,
+): OAuthProviderName | null {
+  if (authType === "oauth_microsoft") return "microsoft";
+  if (authType === "oauth_google") return "google";
+  return null;
+}
 
 function errorDetail(err: unknown): string | undefined {
   const detail = (err as { response?: { data?: { detail?: unknown } } }).response?.data?.detail;
   return typeof detail === "string" ? detail : undefined;
 }
 
-function MicrosoftDeviceCodePanel({
+function OAuthDeviceCodePanel({
+  provider,
   status,
   flow,
   error,
   onStart,
 }: {
-  status: MicrosoftSignInStatus;
-  flow: MicrosoftOAuthFlowStart | null;
+  provider: OAuthProviderName;
+  status: OAuthSignInStatus;
+  flow: OAuthDeviceFlowStart | null;
   error: string | null;
   onStart: () => void;
 }) {
+  const providerLabel = OAUTH_PROVIDER_LABEL[provider];
+
   if (status === "idle") {
     return (
       <Button variant="outlined" startIcon={<LoginIcon />} onClick={onStart} fullWidth>
-        Sign in with Microsoft
+        Sign in with {providerLabel}
       </Button>
     );
   }
@@ -98,7 +120,7 @@ function MicrosoftDeviceCodePanel({
   if (status === "error") {
     return (
       <Stack spacing={1.5}>
-        <Alert severity="error">{error ?? "Microsoft sign-in failed."}</Alert>
+        <Alert severity="error">{error ?? `${providerLabel} sign-in failed.`}</Alert>
         <Button variant="outlined" onClick={onStart}>
           Try again
         </Button>
@@ -107,7 +129,7 @@ function MicrosoftDeviceCodePanel({
   }
 
   if (status === "complete") {
-    return <Alert severity="success">Signed in with Microsoft.</Alert>;
+    return <Alert severity="success">Signed in with {providerLabel}.</Alert>;
   }
 
   return (
@@ -177,9 +199,9 @@ export function MailAccountsPage() {
   const [syncingId, setSyncingId] = useState<number | null>(null);
   const [reconnectTarget, setReconnectTarget] = useState<MailAccount | null>(null);
 
-  const [msStatus, setMsStatus] = useState<MicrosoftSignInStatus>("idle");
-  const [msFlow, setMsFlow] = useState<MicrosoftOAuthFlowStart | null>(null);
-  const [msError, setMsError] = useState<string | null>(null);
+  const [oauthStatus, setOauthStatus] = useState<OAuthSignInStatus>("idle");
+  const [oauthFlow, setOauthFlow] = useState<OAuthDeviceFlowStart | null>(null);
+  const [oauthError, setOauthError] = useState<string | null>(null);
 
   function loadAccounts() {
     apiClient
@@ -190,68 +212,76 @@ export function MailAccountsPage() {
 
   useEffect(loadAccounts, []);
 
-  function resetMicrosoftSignIn() {
-    setMsStatus("idle");
-    setMsFlow(null);
-    setMsError(null);
+  function resetOAuthSignIn() {
+    setOauthStatus("idle");
+    setOauthFlow(null);
+    setOauthError(null);
   }
 
-  async function startMicrosoftSignIn() {
-    setMsError(null);
-    setMsStatus("starting");
+  async function startOAuthSignIn(provider: OAuthProviderName) {
+    setOauthError(null);
+    setOauthStatus("starting");
     try {
-      const { data } = await apiClient.post<MicrosoftOAuthFlowStart>(
-        "/mail-accounts/oauth/microsoft/start",
+      const { data } = await apiClient.post<OAuthDeviceFlowStart>(
+        `/mail-accounts/oauth/${provider}/start`,
       );
-      setMsFlow(data);
-      setMsStatus("waiting");
+      setOauthFlow(data);
+      setOauthStatus("waiting");
     } catch (err) {
-      setMsStatus("error");
-      setMsError(errorDetail(err) ?? "Could not start Microsoft sign-in.");
+      setOauthStatus("error");
+      setOauthError(errorDetail(err) ?? `Could not start ${OAUTH_PROVIDER_LABEL[provider]} sign-in.`);
     }
   }
+
+  const createOAuthProvider = oauthProviderFromAuthType(
+    MAIL_PROVIDER_PRESETS.find((p) => p.id === providerId)?.authType,
+  );
+  const reconnectProvider = oauthProviderFromAuthType(reconnectTarget?.auth_type);
+  // Whichever OAuth panel is currently visible (add-dialog or reconnect-dialog).
+  const activeOAuthProvider = reconnectTarget ? reconnectProvider : createOAuthProvider;
 
   // Polls the device-code flow while "waiting". A completed create-flow just
   // flips to "complete" so the dialog can reveal the rest of the form; a
   // completed reconnect-flow finishes the job itself (no extra fields to
   // collect) and closes its dialog.
   useEffect(() => {
-    if (msStatus !== "waiting" || !msFlow) return undefined;
+    if (oauthStatus !== "waiting" || !oauthFlow || !activeOAuthProvider) return undefined;
 
-    const flowId = msFlow.flow_id;
+    const flowId = oauthFlow.flow_id;
+    const provider = activeOAuthProvider;
     const id = window.setInterval(async () => {
       try {
-        const { data } = await apiClient.get<MicrosoftOAuthFlowStatus>(
-          `/mail-accounts/oauth/microsoft/poll/${flowId}`,
+        const { data } = await apiClient.get<OAuthDeviceFlowStatus>(
+          `/mail-accounts/oauth/${provider}/poll/${flowId}`,
         );
         if (data.status !== "complete") return;
 
         if (reconnectTarget) {
-          await apiClient.post(`/mail-accounts/${reconnectTarget.id}/oauth/microsoft/reconnect`, {
+          await apiClient.post(`/mail-accounts/${reconnectTarget.id}/oauth/${provider}/reconnect`, {
             flow_id: flowId,
           });
           setNotice(`Reconnected ${reconnectTarget.email_address}.`);
           setReconnectTarget(null);
-          resetMicrosoftSignIn();
+          resetOAuthSignIn();
           loadAccounts();
         } else {
-          setMsStatus("complete");
+          setOauthStatus("complete");
         }
       } catch (err) {
-        setMsStatus("error");
-        setMsError(errorDetail(err) ?? "Microsoft sign-in failed.");
+        setOauthStatus("error");
+        setOauthError(errorDetail(err) ?? `${OAUTH_PROVIDER_LABEL[provider]} sign-in failed.`);
       }
-    }, msFlow.interval * 1000);
+    }, oauthFlow.interval * 1000);
 
     return () => window.clearInterval(id);
-  }, [msStatus, msFlow?.flow_id, reconnectTarget]);
+  }, [oauthStatus, oauthFlow?.flow_id, reconnectTarget, activeOAuthProvider]);
 
   function openAddDialog() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setProviderId(CUSTOM_PROVIDER_ID);
     setFormError(null);
-    resetMicrosoftSignIn();
+    resetOAuthSignIn();
     setDialogOpen(true);
   }
 
@@ -270,29 +300,29 @@ export function MailAccountsPage() {
     });
     setProviderId(CUSTOM_PROVIDER_ID);
     setFormError(null);
-    resetMicrosoftSignIn();
+    resetOAuthSignIn();
     setDialogOpen(true);
   }
 
   function closeDialog() {
     setDialogOpen(false);
-    resetMicrosoftSignIn();
+    resetOAuthSignIn();
   }
 
   function openReconnectDialog(account: MailAccount) {
     setReconnectTarget(account);
-    resetMicrosoftSignIn();
+    resetOAuthSignIn();
   }
 
   function closeReconnectDialog() {
     setReconnectTarget(null);
-    resetMicrosoftSignIn();
+    resetOAuthSignIn();
   }
 
   function handleProviderChange(event: SelectChangeEvent) {
     const id = event.target.value;
     setProviderId(id);
-    resetMicrosoftSignIn();
+    resetOAuthSignIn();
     const preset = MAIL_PROVIDER_PRESETS.find((p) => p.id === id);
     if (preset && preset.id !== CUSTOM_PROVIDER_ID) {
       setForm({
@@ -305,24 +335,25 @@ export function MailAccountsPage() {
   }
 
   const selectedPreset = MAIL_PROVIDER_PRESETS.find((p) => p.id === providerId);
-  const isOAuthCreate = editingId === null && selectedPreset?.authType === "oauth_microsoft";
+  const isOAuthCreate = editingId === null && createOAuthProvider !== null;
   const editingAccount = editingId === null ? null : (accounts?.find((a) => a.id === editingId) ?? null);
-  const isOAuthEdit = editingAccount?.auth_type === "oauth_microsoft";
+  const editOAuthProvider = oauthProviderFromAuthType(editingAccount?.auth_type);
+  const isOAuthEdit = editOAuthProvider !== null;
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
     setFormError(null);
 
-    if (isOAuthCreate && (!msFlow || msStatus !== "complete")) {
-      setFormError("Finish signing in with Microsoft first.");
+    if (isOAuthCreate && (!oauthFlow || oauthStatus !== "complete")) {
+      setFormError(`Finish signing in with ${OAUTH_PROVIDER_LABEL[createOAuthProvider!]} first.`);
       return;
     }
 
     setIsSaving(true);
     try {
-      if (isOAuthCreate && msFlow) {
-        await apiClient.post("/mail-accounts/oauth/microsoft/finalize", {
-          flow_id: msFlow.flow_id,
+      if (isOAuthCreate && oauthFlow) {
+        await apiClient.post(`/mail-accounts/oauth/${createOAuthProvider}/finalize`, {
+          flow_id: oauthFlow.flow_id,
           email_address: form.email_address,
           folder: form.folder,
           use_idle: form.use_idle,
@@ -438,69 +469,72 @@ export function MailAccountsPage() {
                 </TableCell>
               </TableRow>
             )}
-            {accounts.map((account) => (
-              <TableRow key={account.id} hover>
-                <TableCell>{account.email_address}</TableCell>
-                <TableCell>
-                  {account.imap_host}:{account.imap_port}
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={account.auth_type === "oauth_microsoft" ? "Microsoft" : "Password"}
-                    size="small"
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell>{account.folder}</TableCell>
-                <TableCell>{account.poll_interval_seconds}s</TableCell>
-                <TableCell>
-                  <Chip
-                    label={account.is_active ? "Active" : "Inactive"}
-                    color={account.is_active ? "success" : "default"}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {account.last_synced_at
-                    ? new Date(account.last_synced_at).toLocaleString()
-                    : "Never"}
-                </TableCell>
-                <TableCell align="right">
-                  <Tooltip title="Sync now">
-                    <span>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleSync(account)}
-                        disabled={syncingId === account.id}
-                      >
-                        {syncingId === account.id ? (
-                          <CircularProgress size={18} />
-                        ) : (
-                          <SyncIcon fontSize="small" />
-                        )}
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                  {account.auth_type === "oauth_microsoft" && (
-                    <Tooltip title="Reconnect Microsoft sign-in">
-                      <IconButton size="small" onClick={() => openReconnectDialog(account)}>
-                        <LoginIcon fontSize="small" />
+            {accounts.map((account) => {
+              const rowOAuthProvider = oauthProviderFromAuthType(account.auth_type);
+              return (
+                <TableRow key={account.id} hover>
+                  <TableCell>{account.email_address}</TableCell>
+                  <TableCell>
+                    {account.imap_host}:{account.imap_port}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={rowOAuthProvider ? OAUTH_PROVIDER_LABEL[rowOAuthProvider] : "Password"}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>{account.folder}</TableCell>
+                  <TableCell>{account.poll_interval_seconds}s</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={account.is_active ? "Active" : "Inactive"}
+                      color={account.is_active ? "success" : "default"}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {account.last_synced_at
+                      ? new Date(account.last_synced_at).toLocaleString()
+                      : "Never"}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="Sync now">
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleSync(account)}
+                          disabled={syncingId === account.id}
+                        >
+                          {syncingId === account.id ? (
+                            <CircularProgress size={18} />
+                          ) : (
+                            <SyncIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    {rowOAuthProvider && (
+                      <Tooltip title={`Reconnect ${OAUTH_PROVIDER_LABEL[rowOAuthProvider]} sign-in`}>
+                        <IconButton size="small" onClick={() => openReconnectDialog(account)}>
+                          <LoginIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Tooltip title="Edit">
+                      <IconButton size="small" onClick={() => openEditDialog(account)}>
+                        <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                  )}
-                  <Tooltip title="Edit">
-                    <IconButton size="small" onClick={() => openEditDialog(account)}>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Remove">
-                    <IconButton size="small" onClick={() => setDeleteTarget(account)}>
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
+                    <Tooltip title="Remove">
+                      <IconButton size="small" onClick={() => setDeleteTarget(account)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
@@ -545,15 +579,16 @@ export function MailAccountsPage() {
                 </Alert>
               )}
 
-              {isOAuthCreate ? (
+              {isOAuthCreate && createOAuthProvider ? (
                 <>
-                  <MicrosoftDeviceCodePanel
-                    status={msStatus}
-                    flow={msFlow}
-                    error={msError}
-                    onStart={startMicrosoftSignIn}
+                  <OAuthDeviceCodePanel
+                    provider={createOAuthProvider}
+                    status={oauthStatus}
+                    flow={oauthFlow}
+                    error={oauthError}
+                    onStart={() => startOAuthSignIn(createOAuthProvider)}
                   />
-                  {msStatus === "complete" && (
+                  {oauthStatus === "complete" && (
                     <>
                       <TextField
                         label="Email address"
@@ -604,10 +639,11 @@ export function MailAccountsPage() {
                     disabled={editingId !== null}
                   />
 
-                  {isOAuthEdit ? (
+                  {isOAuthEdit && editOAuthProvider ? (
                     <Alert severity="info">
-                      This mailbox uses Microsoft sign-in - use "Reconnect Microsoft sign-in" from
-                      the mailbox list if access needs to be renewed.
+                      This mailbox uses {OAUTH_PROVIDER_LABEL[editOAuthProvider]} sign-in - use
+                      "Reconnect {OAUTH_PROVIDER_LABEL[editOAuthProvider]} sign-in" from the
+                      mailbox list if access needs to be renewed.
                     </Alert>
                   ) : (
                     <>
@@ -704,7 +740,7 @@ export function MailAccountsPage() {
             <Button
               type="submit"
               variant="contained"
-              disabled={isSaving || (isOAuthCreate && msStatus !== "complete")}
+              disabled={isSaving || (isOAuthCreate && oauthStatus !== "complete")}
             >
               {isSaving ? "Saving…" : "Save"}
             </Button>
@@ -715,12 +751,15 @@ export function MailAccountsPage() {
       <Dialog open={reconnectTarget !== null} onClose={closeReconnectDialog} maxWidth="xs" fullWidth>
         <DialogTitle>Reconnect {reconnectTarget?.email_address}</DialogTitle>
         <DialogContent>
-          <MicrosoftDeviceCodePanel
-            status={msStatus}
-            flow={msFlow}
-            error={msError}
-            onStart={startMicrosoftSignIn}
-          />
+          {reconnectProvider && (
+            <OAuthDeviceCodePanel
+              provider={reconnectProvider}
+              status={oauthStatus}
+              flow={oauthFlow}
+              error={oauthError}
+              onStart={() => startOAuthSignIn(reconnectProvider)}
+            />
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={closeReconnectDialog}>Close</Button>

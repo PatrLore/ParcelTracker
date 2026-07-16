@@ -97,3 +97,10 @@ microsoft_oauth:
   enabled: false
   client_id: ""
   tenant: "consumers"
+
+# "Sign in with Google" for Gmail mailboxes - see docs/mailboxes.md for the
+# Google Cloud OAuth client setup steps.
+google_oauth:
+  enabled: false
+  client_id: ""
+  client_secret: ""

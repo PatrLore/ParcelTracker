@@ -9,10 +9,12 @@ export interface MailProviderPreset {
    * password once two-factor authentication is enabled. */
   appPasswordHint?: string;
   appPasswordUrl?: string;
-  /** "oauth_microsoft" providers have retired plain-password IMAP login -
-   * the mailbox form shows a "Sign in with Microsoft" flow instead of a
-   * password field. See docs/mailboxes.md. */
-  authType?: "password" | "oauth_microsoft";
+  /** "oauth_microsoft"/"oauth_google" providers show a "Sign in with ..."
+   * device-code flow instead of a password field. Mandatory for
+   * "oauth_microsoft" (Microsoft retired plain-password IMAP login for
+   * these accounts); just an alternative to an app password for
+   * "oauth_google". See docs/mailboxes.md. */
+  authType?: "password" | "oauth_microsoft" | "oauth_google";
 }
 
 export const CUSTOM_PROVIDER_ID = "custom";
@@ -21,12 +23,20 @@ export const MAIL_PROVIDER_PRESETS: MailProviderPreset[] = [
   { id: CUSTOM_PROVIDER_ID, label: "Custom / other", imapHost: "", imapPort: 993, useSsl: true },
   {
     id: "gmail",
-    label: "Gmail (Google Mail)",
+    label: "Gmail (Google Mail) - App password",
     imapHost: "imap.gmail.com",
     imapPort: 993,
     useSsl: true,
     appPasswordHint: "Requires a Google App Password, not your normal login password.",
     appPasswordUrl: "https://myaccount.google.com/apppasswords",
+  },
+  {
+    id: "gmail_oauth",
+    label: "Gmail (Google Mail) - Sign in with Google",
+    imapHost: "imap.gmail.com",
+    imapPort: 993,
+    useSsl: true,
+    authType: "oauth_google",
   },
   {
     id: "outlook",

@@ -46,6 +46,18 @@
   a password field, with a "Reconnect" action if the token is later
   revoked. See `docs/mailboxes.md` for the one-time Azure/Entra ID app
   registration this requires and full setup steps.
+- Google OAuth2 sign-in for Gmail mailboxes (done): an *optional*
+  alternative to a Gmail app password (which, unlike Outlook.com/Hotmail,
+  still works fine) - useful for accounts without 2-Step Verification
+  enabled, or for anyone who'd rather not generate one. Mirrors the
+  Microsoft flow structurally (device-code OAuth2, `app/services/
+  oauth_google.py`), against Google's endpoints, which differ in requiring
+  a client secret even for this device-flow client type. A second,
+  distinctly-labeled Gmail entry in the provider preset picker
+  ("Sign in with Google") walks through the same "Sign in with ..."/
+  "Reconnect" UI already built for Microsoft - both share
+  `OAuthDeviceCodePanel` in `MailAccountsPage.tsx`. See `docs/mailboxes.md`
+  for the one-time Google Cloud OAuth client setup this requires.
 - Not yet done: real-world tuning of the parser regexes against actual
   provider emails (current patterns are best-effort, based on documented/
   typical formats - see `docs/development.md` on adding/refining a parser),

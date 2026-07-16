@@ -67,7 +67,10 @@ class EmailIngestionService:
 
     def sync_account(self, account: MailAccount) -> MailAccountSyncResult:
         access_token = None
-        if account.auth_type == MailAccountAuthType.OAUTH_MICROSOFT:
+        if account.auth_type in (
+            MailAccountAuthType.OAUTH_MICROSOFT,
+            MailAccountAuthType.OAUTH_GOOGLE,
+        ):
             with self._http_client_factory() as client:
                 access_token = MailAccountService(self.db).ensure_fresh_access_token(
                     account, client

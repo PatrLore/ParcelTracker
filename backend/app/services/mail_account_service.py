@@ -12,7 +12,26 @@ from app.models.mail_account import MailAccount
 from app.repositories.mail_account_repository import MailAccountRepository
 from app.schemas.mail_account import MailAccountCreate, MailAccountUpdate
 from app.services.exceptions import NotFoundError
-from app.services.oauth_microsoft import refresh_access_token
+from app.services.oauth_google import refresh_access_token as refresh_google_access_token
+from app.services.oauth_microsoft import refresh_access_token as refresh_microsoft_access_token
+
+#: Fixed IMAP connection details per OAuth provider - these mailboxes only
+#: ever exist on their own provider's server, so there's nothing to ask the
+#: user for beyond their email address.
+_OAUTH_IMAP_HOST = {
+    MailAccountAuthType.OAUTH_MICROSOFT: "outlook.office365.com",
+    MailAccountAuthType.OAUTH_GOOGLE: "imap.gmail.com",
+}
+
+_OAUTH_PROVIDER_NAME = {
+    MailAccountAuthType.OAUTH_MICROSOFT: "Microsoft",
+    MailAccountAuthType.OAUTH_GOOGLE: "Google",
+}
+
+_OAUTH_REFRESH_FUNCS = {
+    MailAccountAuthType.OAUTH_MICROSOFT: refresh_microsoft_access_token,
+    MailAccountAuthType.OAUTH_GOOGLE: refresh_google_access_token,
+}
 
 
 class MailAccountService:
@@ -58,6 +77,35 @@ class MailAccountService:
         self.mail_accounts.delete(account)
         self.mail_accounts.commit()
 
+    def _create_oauth_account(
+        self,
+        *,
+        auth_type: MailAccountAuthType,
+        user_id: int,
+        email_address: str,
+        refresh_token: str,
+        folder: str,
+        use_idle: bool,
+        poll_interval_seconds: int,
+    ) -> MailAccount:
+        account = MailAccount(
+            user_id=user_id,
+            email_address=email_address,
+            imap_host=_OAUTH_IMAP_HOST[auth_type],
+            imap_port=993,
+            imap_username=email_address,
+            auth_type=auth_type,
+            encrypted_password=None,
+            encrypted_oauth_refresh_token=encrypt_secret(refresh_token),
+            use_ssl=True,
+            folder=folder,
+            use_idle=use_idle,
+            poll_interval_seconds=poll_interval_seconds,
+        )
+        account = self.mail_accounts.add(account)
+        self.mail_accounts.commit()
+        return account
+
     def create_oauth_microsoft_account(
         self,
         *,
@@ -70,22 +118,45 @@ class MailAccountService:
     ) -> MailAccount:
         """Creates a mail account authenticated via Microsoft OAuth2 rather
         than a password - see ``app.services.oauth_microsoft``."""
-        account = MailAccount(
+        return self._create_oauth_account(
+            auth_type=MailAccountAuthType.OAUTH_MICROSOFT,
             user_id=user_id,
             email_address=email_address,
-            imap_host="outlook.office365.com",
-            imap_port=993,
-            imap_username=email_address,
-            auth_type=MailAccountAuthType.OAUTH_MICROSOFT,
-            encrypted_password=None,
-            encrypted_oauth_refresh_token=encrypt_secret(refresh_token),
-            use_ssl=True,
+            refresh_token=refresh_token,
             folder=folder,
             use_idle=use_idle,
             poll_interval_seconds=poll_interval_seconds,
         )
-        account = self.mail_accounts.add(account)
+
+    def create_oauth_google_account(
+        self,
+        *,
+        user_id: int,
+        email_address: str,
+        refresh_token: str,
+        folder: str,
+        use_idle: bool,
+        poll_interval_seconds: int,
+    ) -> MailAccount:
+        """Creates a mail account authenticated via Google OAuth2 rather
+        than an app password - see ``app.services.oauth_google``."""
+        return self._create_oauth_account(
+            auth_type=MailAccountAuthType.OAUTH_GOOGLE,
+            user_id=user_id,
+            email_address=email_address,
+            refresh_token=refresh_token,
+            folder=folder,
+            use_idle=use_idle,
+            poll_interval_seconds=poll_interval_seconds,
+        )
+
+    def _reconnect_oauth_account(
+        self, mail_account_id: int, user_id: int, refresh_token: str
+    ) -> MailAccount:
+        account = self.get_account(mail_account_id, user_id)
+        account.encrypted_oauth_refresh_token = encrypt_secret(refresh_token)
         self.mail_accounts.commit()
+        self.db.refresh(account)
         return account
 
     def reconnect_oauth_microsoft_account(
@@ -93,25 +164,34 @@ class MailAccountService:
     ) -> MailAccount:
         """Replaces the stored refresh token after the user re-completes
         Microsoft sign-in (e.g. because it was revoked or expired)."""
-        account = self.get_account(mail_account_id, user_id)
-        account.encrypted_oauth_refresh_token = encrypt_secret(refresh_token)
-        self.mail_accounts.commit()
-        self.db.refresh(account)
-        return account
+        return self._reconnect_oauth_account(mail_account_id, user_id, refresh_token)
+
+    def reconnect_oauth_google_account(
+        self, mail_account_id: int, user_id: int, refresh_token: str
+    ) -> MailAccount:
+        """Replaces the stored refresh token after the user re-completes
+        Google sign-in (e.g. because it was revoked or expired)."""
+        return self._reconnect_oauth_account(mail_account_id, user_id, refresh_token)
 
     def ensure_fresh_access_token(self, account: MailAccount, http_client: httpx.Client) -> str:
-        """Redeems the stored Microsoft refresh token for a fresh access
-        token, persisting the (possibly rotated) refresh token Microsoft
-        returns. Raises :class:`ConnectionError` if sign-in was revoked and
-        the mailbox needs reconnecting."""
+        """Redeems the stored OAuth refresh token (Microsoft or Google,
+        per ``account.auth_type``) for a fresh access token, persisting the
+        (possibly rotated) refresh token the provider returns. Raises
+        :class:`ConnectionError` if sign-in was revoked and the mailbox
+        needs reconnecting."""
+        auth_type = MailAccountAuthType(account.auth_type)
         if account.encrypted_oauth_refresh_token is None:
-            raise ConnectionError(f"Mail account {account.id} has no Microsoft sign-in on file")
+            raise ConnectionError(
+                f"Mail account {account.id} has no {_OAUTH_PROVIDER_NAME[auth_type]} sign-in "
+                "on file"
+            )
         refresh_token = decrypt_secret(account.encrypted_oauth_refresh_token)
         try:
-            result = refresh_access_token(http_client, refresh_token)
+            result = _OAUTH_REFRESH_FUNCS[auth_type](http_client, refresh_token)
         except httpx.HTTPStatusError as exc:
             raise ConnectionError(
-                "Microsoft sign-in has expired or was revoked; reconnect this mailbox."
+                f"{_OAUTH_PROVIDER_NAME[auth_type]} sign-in has expired or was revoked; "
+                "reconnect this mailbox."
             ) from exc
         account.encrypted_oauth_refresh_token = encrypt_secret(result.refresh_token)
         self.mail_accounts.commit()
