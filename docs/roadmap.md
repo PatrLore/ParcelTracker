@@ -14,6 +14,17 @@
   arg) against the latest commit on GitHub - informational only, by
   design; see `docs/docker.md` for why it doesn't run `git pull`/Docker
   itself.
+- Mobile-responsive layout (done): `AppLayout` collapses its top nav into a
+  hamburger-triggered `Drawer` below the `md` breakpoint instead of
+  squeezing tabs/user email/action icons into one row. The Dashboard and
+  Mailboxes tables switch to a stacked card layout below `sm` (a wide
+  multi-column table doesn't fit a phone screen no matter how it's
+  formatted); the mailbox add/edit dialog goes `fullScreen` on mobile and
+  its side-by-side field rows (IMAP host/port, folder/poll interval)
+  stack vertically. Login/Register were already close to mobile-friendly
+  and only needed minor padding tweaks. Verified with real Playwright runs
+  at a phone viewport (iPhone SE, 375x667), not just responsive
+  breakpoints reviewed in isolation.
 
 ## Phase 2 - Email import (done)
 

@@ -8,6 +8,8 @@ import {
   Alert,
   Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   CircularProgress,
   Dialog,
@@ -15,6 +17,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Divider,
   FormControl,
   FormControlLabel,
   IconButton,
@@ -36,6 +39,8 @@ import {
   TextField,
   Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { type FormEvent, useEffect, useState } from "react";
 
@@ -184,6 +189,9 @@ function OAuthDeviceCodePanel({
 }
 
 export function MailAccountsPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const [accounts, setAccounts] = useState<MailAccount[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -429,8 +437,10 @@ export function MailAccountsPage() {
       <Box
         sx={{
           display: "flex",
-          alignItems: "flex-start",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "stretch", sm: "flex-start" },
           justifyContent: "space-between",
+          gap: 2,
           mb: 3,
         }}
       >
@@ -447,67 +457,75 @@ export function MailAccountsPage() {
         </Button>
       </Box>
 
-      <TableContainer component={Paper} elevation={0} sx={{ border: 1, borderColor: "divider" }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Email address</TableCell>
-              <TableCell>IMAP host</TableCell>
-              <TableCell>Sign-in</TableCell>
-              <TableCell>Folder</TableCell>
-              <TableCell>Poll interval</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Last synced</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {accounts.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ color: "text.secondary", py: 4 }}>
-                  No mailboxes yet. Add one to start importing shipping confirmations.
-                </TableCell>
-              </TableRow>
-            )}
-            {accounts.map((account) => {
-              const rowOAuthProvider = oauthProviderFromAuthType(account.auth_type);
-              return (
-                <TableRow key={account.id} hover>
-                  <TableCell>{account.email_address}</TableCell>
-                  <TableCell>
-                    {account.imap_host}:{account.imap_port}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={rowOAuthProvider ? OAUTH_PROVIDER_LABEL[rowOAuthProvider] : "Password"}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>{account.folder}</TableCell>
-                  <TableCell>{account.poll_interval_seconds}s</TableCell>
-                  <TableCell>
+      {accounts.length === 0 && (
+        <Paper
+          elevation={0}
+          sx={{ border: 1, borderColor: "divider", p: 4, textAlign: "center", color: "text.secondary" }}
+        >
+          No mailboxes yet. Add one to start importing shipping confirmations.
+        </Paper>
+      )}
+
+      {accounts.length > 0 && isMobile && (
+        <Stack spacing={2}>
+          {accounts.map((account) => {
+            const rowOAuthProvider = oauthProviderFromAuthType(account.auth_type);
+            return (
+              <Card key={account.id} elevation={0} sx={{ border: 1, borderColor: "divider" }}>
+                <CardContent>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 1,
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 600, wordBreak: "break-all" }}>
+                      {account.email_address}
+                    </Typography>
                     <Chip
                       label={account.is_active ? "Active" : "Inactive"}
                       color={account.is_active ? "success" : "default"}
                       size="small"
                     />
-                  </TableCell>
-                  <TableCell>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: "break-all" }}>
+                    {account.imap_host}:{account.imap_port}
+                  </Typography>
+
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", rowGap: 1 }}>
+                    <Chip
+                      label={rowOAuthProvider ? OAUTH_PROVIDER_LABEL[rowOAuthProvider] : "Password"}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Chip label={account.folder} size="small" variant="outlined" />
+                    <Chip
+                      label={`every ${account.poll_interval_seconds}s`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Stack>
+
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Last synced:{" "}
                     {account.last_synced_at
                       ? new Date(account.last_synced_at).toLocaleString()
                       : "Never"}
-                  </TableCell>
-                  <TableCell align="right">
+                  </Typography>
+
+                  <Divider sx={{ my: 1.5 }} />
+
+                  <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                     <Tooltip title="Sync now">
                       <span>
                         <IconButton
-                          size="small"
                           onClick={() => handleSync(account)}
                           disabled={syncingId === account.id}
                         >
                           {syncingId === account.id ? (
-                            <CircularProgress size={18} />
+                            <CircularProgress size={20} />
                           ) : (
                             <SyncIcon fontSize="small" />
                           )}
@@ -516,30 +534,125 @@ export function MailAccountsPage() {
                     </Tooltip>
                     {rowOAuthProvider && (
                       <Tooltip title={`Reconnect ${OAUTH_PROVIDER_LABEL[rowOAuthProvider]} sign-in`}>
-                        <IconButton size="small" onClick={() => openReconnectDialog(account)}>
+                        <IconButton onClick={() => openReconnectDialog(account)}>
                           <LoginIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     )}
                     <Tooltip title="Edit">
-                      <IconButton size="small" onClick={() => openEditDialog(account)}>
+                      <IconButton onClick={() => openEditDialog(account)}>
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Remove">
-                      <IconButton size="small" onClick={() => setDeleteTarget(account)}>
+                      <IconButton onClick={() => setDeleteTarget(account)}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                  </Box>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Stack>
+      )}
 
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="sm" fullWidth>
+      {accounts.length > 0 && !isMobile && (
+        <TableContainer component={Paper} elevation={0} sx={{ border: 1, borderColor: "divider" }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Email address</TableCell>
+                <TableCell>IMAP host</TableCell>
+                <TableCell>Sign-in</TableCell>
+                <TableCell>Folder</TableCell>
+                <TableCell>Poll interval</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Last synced</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {accounts.map((account) => {
+                const rowOAuthProvider = oauthProviderFromAuthType(account.auth_type);
+                return (
+                  <TableRow key={account.id} hover>
+                    <TableCell>{account.email_address}</TableCell>
+                    <TableCell>
+                      {account.imap_host}:{account.imap_port}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={rowOAuthProvider ? OAUTH_PROVIDER_LABEL[rowOAuthProvider] : "Password"}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>{account.folder}</TableCell>
+                    <TableCell>{account.poll_interval_seconds}s</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={account.is_active ? "Active" : "Inactive"}
+                        color={account.is_active ? "success" : "default"}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {account.last_synced_at
+                        ? new Date(account.last_synced_at).toLocaleString()
+                        : "Never"}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Sync now">
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleSync(account)}
+                            disabled={syncingId === account.id}
+                          >
+                            {syncingId === account.id ? (
+                              <CircularProgress size={18} />
+                            ) : (
+                              <SyncIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      {rowOAuthProvider && (
+                        <Tooltip
+                          title={`Reconnect ${OAUTH_PROVIDER_LABEL[rowOAuthProvider]} sign-in`}
+                        >
+                          <IconButton size="small" onClick={() => openReconnectDialog(account)}>
+                            <LoginIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      <Tooltip title="Edit">
+                        <IconButton size="small" onClick={() => openEditDialog(account)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Remove">
+                        <IconButton size="small" onClick={() => setDeleteTarget(account)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      <Dialog
+        open={dialogOpen}
+        onClose={closeDialog}
+        maxWidth="sm"
+        fullWidth
+        fullScreen={isMobile}
+      >
         <Box component="form" onSubmit={handleSave}>
           <DialogTitle>{editingId === null ? "Add mailbox" : "Edit mailbox"}</DialogTitle>
           <DialogContent>
@@ -598,7 +711,7 @@ export function MailAccountsPage() {
                         required
                         fullWidth
                       />
-                      <Stack direction="row" spacing={2}>
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                         <TextField
                           label="Folder"
                           value={form.folder}
@@ -647,7 +760,7 @@ export function MailAccountsPage() {
                     </Alert>
                   ) : (
                     <>
-                      <Stack direction="row" spacing={2}>
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                         <TextField
                           label="IMAP host"
                           value={form.imap_host}
@@ -662,7 +775,7 @@ export function MailAccountsPage() {
                           value={form.imap_port}
                           onChange={(e) => setForm({ ...form, imap_port: Number(e.target.value) })}
                           required
-                          sx={{ width: 120 }}
+                          sx={{ width: { xs: "100%", sm: 120 } }}
                         />
                       </Stack>
                       <TextField
@@ -692,7 +805,7 @@ export function MailAccountsPage() {
                     </>
                   )}
 
-                  <Stack direction="row" spacing={2}>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                     <TextField
                       label="Folder"
                       value={form.folder}
@@ -709,7 +822,7 @@ export function MailAccountsPage() {
                       fullWidth
                     />
                   </Stack>
-                  <Stack direction="row" spacing={3}>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 1, sm: 3 }}>
                     {!isOAuthEdit && (
                       <FormControlLabel
                         control={

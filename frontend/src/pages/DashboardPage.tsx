@@ -6,9 +6,12 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import {
   Alert,
   Box,
+  Card,
+  CardContent,
   CircularProgress,
   Grid,
   Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -16,6 +19,8 @@ import {
   TableHead,
   TableRow,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 
@@ -25,6 +30,9 @@ import { StatCard } from "../components/StatCard";
 import type { DashboardSummary } from "../types";
 
 export function DashboardPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,41 +100,74 @@ export function DashboardPage() {
       <Typography variant="h6" sx={{ fontWeight: 600 }} gutterBottom>
         Recent shipments
       </Typography>
-      <TableContainer component={Paper} elevation={0} sx={{ border: 1, borderColor: "divider" }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Tracking number</TableCell>
-              <TableCell>Carrier</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Estimated delivery</TableCell>
-              <TableCell>Last update</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {summary.recent_shipments.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ color: "text.secondary", py: 4 }}>
-                  No shipments yet.
-                </TableCell>
-              </TableRow>
-            )}
-            {summary.recent_shipments.map((shipment) => (
-              <TableRow key={shipment.id} hover>
-                <TableCell>{shipment.tracking_number}</TableCell>
-                <TableCell>{shipment.carrier?.name ?? "—"}</TableCell>
-                <TableCell>
+      {summary.recent_shipments.length === 0 && (
+        <Paper
+          elevation={0}
+          sx={{ border: 1, borderColor: "divider", p: 4, textAlign: "center", color: "text.secondary" }}
+        >
+          No shipments yet.
+        </Paper>
+      )}
+
+      {summary.recent_shipments.length > 0 && isMobile && (
+        <Stack spacing={2}>
+          {summary.recent_shipments.map((shipment) => (
+            <Card key={shipment.id} elevation={0} sx={{ border: 1, borderColor: "divider" }}>
+              <CardContent>
+                <Box
+                  sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}
+                >
+                  <Typography sx={{ fontWeight: 600, wordBreak: "break-all" }}>
+                    {shipment.tracking_number}
+                  </Typography>
                   <ShipmentStatusChip status={shipment.tracking_status} />
-                </TableCell>
-                <TableCell>{shipment.estimated_delivery_date ?? "—"}</TableCell>
-                <TableCell>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {shipment.carrier?.name ?? "Unknown carrier"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Estimated delivery: {shipment.estimated_delivery_date ?? "—"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Last update:{" "}
                   {shipment.last_update ? new Date(shipment.last_update).toLocaleString() : "—"}
-                </TableCell>
+                </Typography>
+              </CardContent>
+            </Card>
+          ))}
+        </Stack>
+      )}
+
+      {summary.recent_shipments.length > 0 && !isMobile && (
+        <TableContainer component={Paper} elevation={0} sx={{ border: 1, borderColor: "divider" }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Tracking number</TableCell>
+                <TableCell>Carrier</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Estimated delivery</TableCell>
+                <TableCell>Last update</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {summary.recent_shipments.map((shipment) => (
+                <TableRow key={shipment.id} hover>
+                  <TableCell>{shipment.tracking_number}</TableCell>
+                  <TableCell>{shipment.carrier?.name ?? "—"}</TableCell>
+                  <TableCell>
+                    <ShipmentStatusChip status={shipment.tracking_status} />
+                  </TableCell>
+                  <TableCell>{shipment.estimated_delivery_date ?? "—"}</TableCell>
+                  <TableCell>
+                    {shipment.last_update ? new Date(shipment.last_update).toLocaleString() : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Box>
   );
 }
