@@ -45,7 +45,7 @@ export function LoginPage() {
         px: 2,
       }}
     >
-      <Paper elevation={3} sx={{ p: 4, width: "100%", maxWidth: 400 }}>
+      <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 }, width: "100%", maxWidth: 400 }}>
         <Stack spacing={3} component="form" onSubmit={handleSubmit}>
           <Box>
             <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>

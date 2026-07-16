@@ -1,4 +1,4 @@
-import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
+import { createTheme, CssBaseline, responsiveFontSizes, ThemeProvider } from "@mui/material";
 import {
   createContext,
   type PropsWithChildren,
@@ -38,14 +38,16 @@ export function ThemeModeProvider({ children }: PropsWithChildren) {
 
   const theme = useMemo(
     () =>
-      createTheme({
-        palette: {
-          mode,
-          primary: { main: "#2563eb" },
-          secondary: { main: "#7c3aed" },
-        },
-        shape: { borderRadius: 10 },
-      }),
+      responsiveFontSizes(
+        createTheme({
+          palette: {
+            mode,
+            primary: { main: "#2563eb" },
+            secondary: { main: "#7c3aed" },
+          },
+          shape: { borderRadius: 10 },
+        }),
+      ),
     [mode],
   );
 
