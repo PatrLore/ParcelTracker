@@ -174,7 +174,25 @@ since it goes through Google Cloud rather than Azure/Entra ID:
 Test users' refresh tokens keep working indefinitely in Testing mode -
 there's no need to ever "publish" the app for personal use.
 
-## Provider reference
+## Polling a folder other than INBOX
+
+By default a mailbox only polls **INBOX**. That misses mail that a
+provider-side filter routed straight into a label/folder without also
+keeping it in the inbox - a common Gmail setup ("skip the inbox, archive
+it"). To poll a different folder (or Gmail's "All Mail", to catch
+everything regardless of labels), edit the mailbox and change its
+**Folder** field.
+
+Gmail's own folder names vary by account (e.g. `[Gmail]/All Mail` vs.
+`[Google Mail]/Alle Nachrichten` for older/German accounts) and custom
+labels are exact, case-sensitive matches - there's no reliable way to
+guess them from the outside. Instead of guessing: enter anything, click
+**Sync now**, and if the name is wrong, the error message lists every
+folder the account actually has over IMAP, so you can copy the exact
+name from there. (Gmail also hides "All Mail" from IMAP entirely unless
+**Settings → Labels → System labels → "All Mail" → "Show in IMAP"** is
+checked - that has to be enabled first, or it won't appear in the list
+either.)
 
 | Provider | Auth | Notes |
 | --- | --- | --- |
