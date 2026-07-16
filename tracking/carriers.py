@@ -62,7 +62,15 @@ def find_tracking_numbers(text: str) -> dict[str, str]:
     """Scan free text for tracking numbers, keyed by tracking number.
 
     Returns a mapping of ``tracking_number -> carrier`` for every match found,
-    checked in the same specificity order as :func:`detect_carrier`.
+    checked in the same specificity order as :func:`detect_carrier`. Several
+    carriers' formats are just a bare digit run of a given length (DHL, DPD,
+    GLS, ...), so an unrelated number elsewhere in the same text (a customer
+    ID, phone number, invoice number, ...) can coincidentally match a
+    *different* carrier's pattern than the one actually being shipped with.
+    When the text plainly names one of the carriers among the matches (e.g.
+    the email is visibly a DHL notification), matches for any other,
+    unmentioned carrier are dropped instead of potentially being picked over
+    the correct one.
     """
     found: dict[str, str] = {}
     for carrier in _DETECTION_ORDER:
@@ -70,4 +78,15 @@ def find_tracking_numbers(text: str) -> dict[str, str]:
         for match in pattern.finditer(text):
             number = match.group(1)
             found.setdefault(number, carrier)
-    return found
+
+    if len(found) <= 1:
+        return found
+
+    mentioned_carriers = {
+        carrier
+        for carrier in dict.fromkeys(found.values())
+        if re.search(rf"\b{re.escape(carrier)}\b", text, re.IGNORECASE)
+    }
+    if not mentioned_carriers:
+        return found
+    return {number: carrier for number, carrier in found.items() if carrier in mentioned_carriers}

@@ -53,6 +53,16 @@ was forwarded, which replaces the `From` header and breaks every merchant
 parser's sender-domain match) still show up instead of being silently
 dropped - see `docs/mailboxes.md` for the user-facing explanation.
 
+Several carriers' formats are just a bare digit run of a given length (DHL,
+DPD, GLS, ...), so an unrelated number elsewhere in the same email (a
+customer ID, phone number, invoice number, ...) can coincidentally match a
+*different* carrier's pattern than the one actually shipping the parcel.
+`find_tracking_numbers` (`tracking/carriers.py`) guards against this: if the
+text plainly names one of the candidate carriers (e.g. "DHL" appears
+verbatim), matches for any other, unmentioned carrier are dropped rather
+than risking that a coincidental false positive is picked over the real
+tracking number.
+
 ### Adding a carrier
 
 Add one entry to `CARRIER_PATTERNS` (and `_DETECTION_ORDER`, for

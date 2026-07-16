@@ -46,3 +46,28 @@ def test_find_tracking_numbers_in_free_text():
 
     assert found["1Z999AA10123456784"] == "UPS"
     assert found["TBA123456789012"] == "Amazon Logistics"
+
+
+def test_find_tracking_numbers_prefers_carrier_named_in_text():
+    """A DHL notification's own tracking number (20 digits) shouldn't lose
+    out to an unrelated 11-digit number elsewhere in the text (e.g. a
+    customer ID) that coincidentally matches GLS's bare-digit pattern -
+    GLS is checked before DHL in _DETECTION_ORDER, so without this
+    disambiguation the false positive would be found first."""
+    text = (
+        "Ihre DHL Sendung ist unterwegs. Kundennummer: 12345678901. "
+        "Sendungsstatus einsehen: 00340435093806820124"
+    )
+
+    found = find_tracking_numbers(text)
+
+    assert found == {"00340435093806820124": "DHL"}
+
+
+def test_find_tracking_numbers_keeps_ambiguous_matches_when_no_carrier_named():
+    text = "Referenz: 12345678901. Sendungsnummer: 00340435093806820124"
+
+    found = find_tracking_numbers(text)
+
+    assert found["12345678901"] == "GLS"
+    assert found["00340435093806820124"] == "DHL"
